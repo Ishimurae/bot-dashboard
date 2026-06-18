@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeMajordome — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --gold:#c9a84c; --gold-dim:rgba(201,168,76,0.14); --border:rgba(201,168,76,0.12);
+      --bg:#07070f; --s1:#0d0d1a; --s2:#111120;
+      --text:#f0ece4; --muted:#7a7060; --muted2:#a09080;
+      --danger:#f87171; --success:#4ade80;
+    }
+    body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+
+    /* ── Header ── */
+    #hdr {
+      height:60px; display:flex; align-items:center; padding:0 1.5rem; gap:0.9rem; flex-shrink:0;
+      background:rgba(7,7,15,0.96); backdrop-filter:blur(20px); border-bottom:1px solid var(--border);
+    }
+    #hdr .back { color:var(--muted); text-decoration:none; font-size:0.8rem; white-space:nowrap; transition:color .2s; }
+    #hdr .back:hover { color:var(--text); }
+    .g-icon { width:32px; height:32px; border-radius:50%; flex-shrink:0; object-fit:cover; }
+    .g-init { width:32px; height:32px; border-radius:50%; background:var(--gold-dim); display:flex; align-items:center; justify-content:center; color:var(--gold); font-weight:700; font-size:0.78rem; flex-shrink:0; }
+    #hdr .gname { font-weight:600; font-size:0.95rem; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .u-bar { display:flex; align-items:center; gap:0.6rem; flex-shrink:0; }
+    .u-bar img { width:28px; height:28px; border-radius:50%; }
+    .u-bar span { font-size:0.8rem; color:var(--muted2); }
+    .u-bar a { color:var(--muted); font-size:0.78rem; text-decoration:none; transition:color .2s; }
+    .u-bar a:hover { color:var(--text); }
+
+    /* ── Layout ── */
+    #layout { display:flex; flex:1; overflow:hidden; }
+
+    /* ── Sidebar ── */
+    #sb {
+      width:210px; flex-shrink:0; background:var(--s1); border-right:1px solid var(--border);
+      padding:0.8rem 0.6rem; overflow-y:auto; display:flex; flex-direction:column; gap:0.15rem;
+    }
+    .ns { font-size:0.66rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; padding:0.6rem 0.6rem 0.2rem; margin-top:0.3rem; }
+    .nb {
+      display:flex; align-items:center; gap:0.6rem; width:100%; padding:0.55rem 0.7rem;
+      border-radius:9px; border:none; background:transparent; color:var(--muted2);
+      font-family:'Inter',sans-serif; font-size:0.84rem; cursor:pointer; transition:all .15s; text-align:left;
+    }
+    .nb:hover { background:var(--gold-dim); color:var(--text); }
+    .nb.active { background:rgba(201,168,76,0.2); color:var(--gold); font-weight:600; }
+    .nb svg { width:14px; height:14px; flex-shrink:0; }
+
+    /* ── Content ── */
+    #ct { flex:1; overflow-y:auto; padding:2rem 2.5rem; }
+    .tab-title { font-family:'Playfair Display',serif; font-size:1.5rem; margin-bottom:0.25rem; }
+    .tab-desc { color:var(--muted); font-size:0.84rem; margin-bottom:2rem; }
+
+    /* ── Sections ── */
+    .sec { background:var(--s1); border:1px solid var(--border); border-radius:16px; padding:1.5rem; margin-bottom:1.1rem; }
+    .sec-t { font-weight:600; font-size:0.88rem; color:var(--gold); margin-bottom:1.1rem; }
+
+    /* ── Fields ── */
+    .field { margin-bottom:1rem; }
+    .field:last-child { margin-bottom:0; }
+    .field label { display:block; font-size:0.8rem; font-weight:500; color:var(--muted2); margin-bottom:0.35rem; }
+    .field select, .field input[type=text], .field input[type=number], .field textarea {
+      width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px;
+      color:var(--text); font-family:'Inter',sans-serif; font-size:0.86rem;
+      padding:0.55rem 0.75rem; outline:none; transition:border-color .2s;
+    }
+    .field select:focus, .field input:focus, .field textarea:focus { border-color:rgba(201,168,76,0.4); }
+    .field select option { background:#1a1a2e; }
+    .field textarea { resize:vertical; min-height:76px; }
+    .r2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+
+    /* ── Buttons ── */
+    .btn-save {
+      background:var(--gold); color:#0a0a14; font-weight:700; border:none; border-radius:10px;
+      padding:0.65rem 1.8rem; font-size:0.88rem; cursor:pointer; transition:all .2s;
+      font-family:'Inter',sans-serif; margin-top:0.5rem;
+    }
+    .btn-save:hover { background:#d4b05a; transform:translateY(-1px); }
+    .btn-add {
+      background:var(--gold-dim); color:var(--gold); border:1px solid rgba(201,168,76,0.3);
+      border-radius:8px; padding:0.45rem 1rem; font-size:0.82rem; cursor:pointer;
+      font-family:'Inter',sans-serif; transition:all .2s; white-space:nowrap;
+    }
+    .btn-add:hover { background:rgba(201,168,76,0.25); }
+    .btn-del {
+      background:rgba(248,113,113,0.08); color:var(--danger); border:1px solid rgba(248,113,113,0.25);
+      border-radius:7px; padding:0.3rem 0.7rem; font-size:0.76rem; cursor:pointer;
+      font-family:'Inter',sans-serif; transition:all .2s;
+    }
+    .btn-del:hover { background:rgba(248,113,113,0.18); }
+
+    /* ── Tags ── */
+    .tags { display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.6rem; min-height:24px; }
+    .tag {
+      background:rgba(201,168,76,0.1); color:var(--gold); border:1px solid rgba(201,168,76,0.25);
+      border-radius:6px; padding:0.22rem 0.5rem; font-size:0.78rem; display:flex; align-items:center; gap:0.3rem;
+    }
+    .tag button { background:none; border:none; color:inherit; cursor:pointer; font-size:1rem; line-height:1; padding:0; }
+    .add-row { display:flex; gap:0.5rem; margin-top:0.4rem; }
+    .add-row input { flex:1; max-width:280px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'Inter',sans-serif; font-size:0.86rem; padding:0.5rem 0.75rem; outline:none; }
+    .add-row input:focus { border-color:rgba(201,168,76,0.4); }
+
+    /* ── Table ── */
+    .tbl { width:100%; border-collapse:collapse; font-size:0.84rem; }
+    .tbl th { text-align:left; color:var(--muted); font-weight:500; padding:0.5rem; border-bottom:1px solid var(--border); font-size:0.76rem; }
+    .tbl td { padding:0.5rem; vertical-align:middle; }
+    .tbl tr:not(:last-child) td { border-bottom:1px solid rgba(255,255,255,0.04); }
+
+    /* ── Stats ── */
+    .stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+    .stat-card { background:var(--s1); border:1px solid var(--border); border-radius:14px; padding:1.1rem; }
+    .stat-val { font-size:1.9rem; font-weight:700; color:var(--gold); }
+    .stat-lbl { font-size:0.76rem; color:var(--muted); margin-top:0.15rem; }
+    .lb-row { display:flex; align-items:center; gap:0.75rem; padding:0.55rem 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+    .lb-rank { width:22px; text-align:center; font-size:0.82rem; color:var(--muted); font-weight:600; }
+    .lb-info { flex:1; font-size:0.82rem; color:var(--muted2); }
+    .lb-xp { font-size:0.76rem; color:var(--muted2); }
+
+    /* ── Checkboxes rôles ── */
+    .role-checks { display:flex; flex-wrap:wrap; gap:0.4rem; }
+    .role-checks label {
+      display:flex; align-items:center; gap:0.35rem; font-size:0.8rem; cursor:pointer;
+      background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:7px; padding:0.3rem 0.65rem;
+      transition:all .15s;
+    }
+    .role-checks label:hover { border-color:rgba(201,168,76,0.3); }
+    .role-checks input[type=checkbox] { accent-color:var(--gold); }
+
+    /* ── Color ── */
+    .color-row { display:flex; gap:0.5rem; align-items:center; }
+    .color-row input[type=color] { width:38px; height:34px; border-radius:6px; border:1px solid var(--border); background:none; cursor:pointer; padding:2px; flex-shrink:0; }
+    .color-row input[type=text] { flex:1; }
+
+    /* ── Toast ── */
+    #toast {
+      position:fixed; bottom:1.5rem; right:1.5rem; background:#1a1a2e; border:1px solid var(--border);
+      border-radius:12px; padding:0.75rem 1.1rem; font-size:0.84rem;
+      display:flex; align-items:center; gap:0.5rem;
+      transform:translateY(80px); transition:transform .3s ease; z-index:200; pointer-events:none;
+    }
+    #toast.show { transform:translateY(0); }
+    #toast.ok { border-color:rgba(74,222,128,0.3); color:var(--success); }
+    #toast.err { border-color:rgba(248,113,113,0.3); color:var(--danger); }
+
+    /* ── Loading ── */
+    .spinner { text-align:center; padding:4rem; color:var(--muted); }
+
+    @media (max-width:620px) {
+      #sb { width:50px; }
+      .nb span, .ns { display:none; }
+      #ct { padding:1rem; }
+      .r2 { grid-template-columns:1fr; }
+    }
+
+    /* ── Guide ── */
+    .guide-hero {
+      display:flex; align-items:center; gap:1.5rem;
+      background:linear-gradient(135deg,rgba(201,168,76,0.08) 0%,rgba(201,168,76,0.02) 100%);
+      border:1px solid rgba(201,168,76,0.2); border-radius:16px;
+      padding:1.8rem; margin-bottom:1.6rem; position:relative; overflow:hidden;
+    }
+    .guide-hero::before {
+      content:''; position:absolute; inset:0;
+      background:radial-gradient(ellipse at top right,rgba(201,168,76,0.07) 0%,transparent 60%);
+      pointer-events:none;
+    }
+    .guide-avatar {
+      width:90px; height:90px; border-radius:50%; flex-shrink:0;
+      background:rgba(201,168,76,0.08); border:2px solid rgba(201,168,76,0.25);
+      display:flex; align-items:center; justify-content:center;
+      position:relative; overflow:hidden;
+    }
+    .guide-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+    .guide-avatar::after {
+      content:''; position:absolute; inset:-5px; border-radius:50%;
+      border:1px solid rgba(201,168,76,0.18); animation:pulse-ring 3s ease-in-out infinite;
+      pointer-events:none;
+    }
+    @keyframes pulse-ring { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.1)} }
+    .emote { width:44px; height:44px; object-fit:contain; flex-shrink:0; }
+    .emote-sm { width:32px; height:32px; object-fit:contain; flex-shrink:0; }
+    .guide-hero-text h2 { font-family:'Playfair Display',serif; font-size:1.35rem; color:var(--gold); margin-bottom:0.3rem; }
+    .guide-hero-text p { color:var(--muted2); font-size:0.87rem; line-height:1.6; }
+    .guide-bubble {
+      background:rgba(201,168,76,0.06); border:1px solid rgba(201,168,76,0.18);
+      border-radius:12px; padding:1rem 1.2rem; margin-bottom:1.6rem;
+      display:flex; gap:0.9rem; align-items:flex-start;
+    }
+    .guide-bubble .bicon { font-size:1.4rem; flex-shrink:0; margin-top:2px; }
+    .guide-bubble p { color:var(--muted2); font-size:0.85rem; line-height:1.65; }
+    .guide-bubble strong { color:var(--text); }
+    .guide-tips { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:0.9rem; margin-bottom:1.6rem; }
+    .tip-card {
+      background:var(--s2); border:1px solid var(--border); border-radius:12px;
+      padding:1rem 1.1rem; display:flex; gap:0.8rem; align-items:flex-start;
+      transition:border-color .2s, transform .15s;
+    }
+    .tip-card:hover { border-color:rgba(201,168,76,0.28); transform:translateY(-1px); }
+    .tip-icon { font-size:1.25rem; flex-shrink:0; margin-top:1px; }
+    .tip-card h4 { font-size:0.84rem; font-weight:600; color:var(--text); margin-bottom:0.25rem; }
+    .tip-card p { font-size:0.79rem; color:var(--muted2); line-height:1.55; }
+    .guide-acc { border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:0.6rem; }
+    .guide-acc-hd {
+      width:100%; display:flex; align-items:center; justify-content:space-between;
+      padding:0.85rem 1.1rem; background:var(--s2); border:none; cursor:pointer;
+      color:var(--text); font-family:'Inter',sans-serif; font-size:0.88rem; font-weight:600;
+      transition:background .15s;
+    }
+    .guide-acc-hd:hover { background:rgba(201,168,76,0.06); }
+    .guide-acc-hd .acc-left { display:flex; align-items:center; gap:0.6rem; }
+    .guide-acc-hd .acc-arrow { color:var(--muted); font-size:0.75rem; transition:transform .2s; display:inline-block; }
+    .guide-acc-hd.open .acc-arrow { transform:rotate(90deg); }
+    .guide-acc-body { display:none; padding:1rem 1.1rem 1.1rem; background:rgba(7,7,15,0.5); border-top:1px solid var(--border); }
+    .guide-acc-body.open { display:block; }
+    .guide-acc-body p { font-size:0.83rem; color:var(--muted2); line-height:1.65; margin-bottom:0.55rem; }
+    .guide-acc-body p:last-child { margin-bottom:0; }
+    .guide-acc-body code {
+      background:rgba(201,168,76,0.1); color:var(--gold); border-radius:4px;
+      padding:1px 6px; font-size:0.8rem; font-family:'Courier New',monospace;
+    }
+    .guide-acc-body ul { padding-left:1.2rem; margin-top:0.3rem; }
+    .guide-acc-body li { font-size:0.83rem; color:var(--muted2); line-height:1.7; }
+    .guide-acc-body li strong { color:var(--text); }
+    .var-row { display:flex; gap:0.8rem; align-items:baseline; margin-bottom:0.3rem; flex-wrap:wrap; }
+    .var-row code { white-space:nowrap; }
+    .var-row span { font-size:0.8rem; color:var(--muted2); }
+    /* ── Panneaux builder ── */
+    .fmt-bar {
+      display:flex; flex-wrap:wrap; gap:3px; padding:0.4rem 0.5rem;
+      background:rgba(255,255,255,.03); border:1px solid var(--border);
+      border-bottom:none; border-radius:8px 8px 0 0;
+    }
+    .fmt-btn {
+      background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07);
+      border-radius:5px; color:var(--muted2); cursor:pointer; padding:3px 8px;
+      font-size:0.78rem; font-family:'Inter',sans-serif; line-height:1.5; transition:all .12s;
+      white-space:nowrap;
+    }
+    .fmt-btn:hover { background:rgba(201,168,76,.15); color:var(--gold); border-color:rgba(201,168,76,.3); }
+    .fmt-sep { width:1px; background:var(--border); margin:2px 3px; align-self:stretch; }
+    .fmt-ta textarea { border-radius:0 0 8px 8px !important; }
+    .panel-option {
+      background:var(--s2); border:1px solid var(--border); border-radius:10px;
+      padding:0.75rem; display:flex; flex-direction:column; gap:0.5rem;
+    }
+    .panel-option-row { display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; }
+    .panel-option-row select { flex:1; min-width:120px; }
+    .panel-option-row input[type=text] {
+      flex:1; background:rgba(255,255,255,.04); border:1px solid var(--border);
+      border-radius:7px; color:var(--text); font-size:0.82rem; padding:0.38rem 0.6rem;
+      font-family:'Inter',sans-serif; outline:none; min-width:80px;
+    }
+    .panel-option-row input:focus { border-color:rgba(201,168,76,.35); }
+    .panel-emoji-btn {
+      background:rgba(255,255,255,.05); border:1px solid var(--border); border-radius:7px;
+      padding:4px 8px; cursor:pointer; font-size:0.82rem; color:var(--muted2);
+      white-space:nowrap; transition:all .12s; flex-shrink:0;
+    }
+    .panel-emoji-btn:hover { background:rgba(201,168,76,.12); color:var(--gold); }
+    .panel-emoji-preview { font-size:1.1rem; min-width:24px; text-align:center; }
+    .toggle-row { display:flex; align-items:center; gap:0.7rem; }
+    .toggle { position:relative; display:inline-block; width:38px; height:20px; flex-shrink:0; }
+    .toggle input { opacity:0; width:0; height:0; }
+    .toggle-slider {
+      position:absolute; inset:0; background:rgba(255,255,255,.12); border-radius:20px;
+      cursor:pointer; transition:background .2s;
+    }
+    .toggle-slider::before {
+      content:''; position:absolute; width:14px; height:14px; left:3px; top:3px;
+      background:#fff; border-radius:50%; transition:transform .2s;
+    }
+    .toggle input:checked + .toggle-slider { background:var(--gold); }
+    .toggle input:checked + .toggle-slider::before { transform:translateX(18px); }
+    .panel-list { display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem; }
+    .panel-list-item {
+      background:var(--s1); border:1px solid var(--border); border-radius:8px;
+      padding:0.6rem 0.8rem; display:flex; justify-content:space-between; align-items:center;
+      font-size:0.82rem; color:var(--muted2);
+    }
+    .panel-list-item a { color:var(--gold); text-decoration:none; font-size:0.75rem; }
+    .panel-list-item a:hover { text-decoration:underline; }
+
+    .guide-sep { border:none; border-top:1px solid var(--border); margin:1.4rem 0; }
+    .guide-label { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-bottom:0.7rem; margin-top:1.2rem; }
+
+    /* ── Emoji picker ── */
+    .ep-wrap { position:relative; }
+    .ep-btn {
+      position:absolute; top:6px; right:8px; z-index:2;
+      background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.2);
+      border-radius:6px; padding:3px 7px; cursor:pointer; font-size:0.78rem;
+      color:var(--muted2); transition:all .15s; line-height:1.4; white-space:nowrap;
+    }
+    .ep-btn:hover { background:rgba(201,168,76,0.18); color:var(--gold); border-color:rgba(201,168,76,0.4); }
+    .ep-panel {
+      position:absolute; top:calc(100% + 4px); right:0; z-index:100;
+      width:300px; max-height:220px;
+      background:#0d0d1a; border:1px solid rgba(201,168,76,0.22);
+      border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.5);
+      display:none; flex-direction:column; overflow:hidden;
+    }
+    .ep-panel.open { display:flex; }
+    .ep-search {
+      padding:0.5rem 0.6rem; border-bottom:1px solid var(--border);
+      flex-shrink:0;
+    }
+    .ep-search input {
+      width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border);
+      border-radius:7px; color:var(--text); font-size:0.8rem; padding:0.3rem 0.6rem;
+      font-family:'Inter',sans-serif; outline:none;
+    }
+    .ep-search input:focus { border-color:rgba(201,168,76,0.35); }
+    .ep-grid {
+      display:flex; flex-wrap:wrap; gap:2px; padding:0.5rem; overflow-y:auto;
+      scrollbar-width:thin; scrollbar-color:rgba(201,168,76,0.2) transparent;
+    }
+    .ep-item {
+      width:36px; height:36px; border-radius:6px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      transition:background .1s; flex-shrink:0; position:relative;
+    }
+    .ep-item:hover { background:rgba(201,168,76,0.12); }
+    .ep-item img { width:28px; height:28px; object-fit:contain; }
+    .ep-item .ep-tt {
+      display:none; position:absolute; bottom:calc(100% + 4px); left:50%;
+      transform:translateX(-50%); background:#111; border:1px solid var(--border);
+      border-radius:5px; padding:2px 6px; font-size:0.7rem; color:var(--muted2);
+      white-space:nowrap; pointer-events:none; z-index:10;
+    }
+    .ep-item:hover .ep-tt { display:block; }
+    .ep-empty { color:var(--muted); font-size:0.8rem; padding:1rem; text-align:center; width:100%; }
+  </style>
+</head>
+<body>
+
+<div id="hdr">
+  <a class="back" href="/select.html">← Serveurs</a>
+  <div id="g-icon-wrap"></div>
+  <span id="g-name" class="gname">Chargement…</span>
+  <div class="u-bar">
+    <img id="u-avatar" src="" alt="">
+    <span id="u-name"></span>
+    <a href="/auth/logout">Déco</a>
+  </div>
+</div>
+
+<div id="layout">
+  <nav id="sb">
+    <div class="ns">Principal</div>
+    <button class="nb active" data-tab="overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span>Vue d'ensemble</span>
+    </button>
+    <button class="nb" data-tab="general">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      <span>Général</span>
+    </button>
+
+    <div class="ns">Modération</div>
+    <button class="nb" data-tab="automod">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span>Automodération</span>
+    </button>
+    <button class="nb" data-tab="logs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Journaux</span>
+    </button>
+
+    <div class="ns">Communauté</div>
+    <button class="nb" data-tab="welcome">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Bienvenue</span>
+    </button>
+    <button class="nb" data-tab="levels">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span>Niveaux XP</span>
+    </button>
+    <button class="nb" data-tab="tickets">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
+      <span>Tickets</span>
+    </button>
+    <button class="nb" data-tab="roles">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+      <span>Accès rapide</span>
+    </button>
+    <button class="nb" data-tab="twitch">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>
+      <span>Twitch</span>
+    </button>
+    <button class="nb" data-tab="advanced">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+      <span>Avancé</span>
+    </button>
+
+    <div class="ns">Outils</div>
+    <button class="nb" data-tab="panneaux">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="4" rx="1"/><path d="M3 11h18M3 17h18"/><circle cx="7" cy="17" r="1.5" fill="currentColor" stroke="none"/></svg>
+      <span>Panneaux</span>
+    </button>
+
+    <div class="ns">Aide</div>
+    <button class="nb" data-tab="guide">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>
+      <span>Guide & Aide</span>
+    </button>
+  </nav>
+
+  <main id="ct">
+    <div class="spinner">Chargement…</div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+  var guildId = null;
+  var gd = null; // guildData: { config, stats, channels, categories, roles }
+  var wordList = [];
+  var lvlRoles = {};
+  var twitchList = [];
+
+  // ── Utils ──────────────────────────────────────────────────────────────────
+
+  function $id(id) { return document.getElementById(id); }
+
+  // ── Emoji picker ────────────────────────────────────────────────────────────
+
+  function emojiUrl(e) {
+    return 'https://cdn.discordapp.com/emojis/' + e.id + (e.animated ? '.gif' : '.png') + '?size=64';
+  }
+
+  function txtArea(id, val) {
+    var emojis = (gd && gd.emojis) ? gd.emojis : [];
+    var pid = 'ep-' + id;
+    var ta = '<div class="ep-wrap">'
+      + '<textarea id="' + id + '">' + (val || '') + '</textarea>';
+    if (emojis.length) {
+      ta += '<button type="button" class="ep-btn" onclick="epToggle(\'' + pid + '\',\'' + id + '\')">😀 Emotes</button>'
+        + '<div class="ep-panel" id="' + pid + '">'
+          + '<div class="ep-search"><input type="text" placeholder="Rechercher…" oninput="epFilter(\'' + pid + '\',this.value)"></div>'
+          + '<div class="ep-grid" id="' + pid + '-grid">'
+          + emojis.map(function(e) {
+              return '<div class="ep-item" onclick="epInsert(\'' + id + '\',\'' + (e.animated?'<a:':'<:') + e.name + ':' + e.id + '>\')" title=":' + e.name + ':">'
+                + '<img src="' + emojiUrl(e) + '" alt=":' + e.name + ':" loading="lazy">'
+                + '<span class="ep-tt">:' + e.name + ':</span>'
+              + '</div>';
+            }).join('')
+          + '</div>'
+        + '</div>';
+    }
+    ta += '</div>';
+    return ta;
+  }
+
+  window.epToggle = function(pid, tid, ev) {
+    if (ev) ev.stopPropagation();
+    var panel = $id(pid);
+    if (!panel) return;
+    var isOpen = panel.classList.contains('open');
+    document.querySelectorAll('.ep-panel.open').forEach(function(p) { p.classList.remove('open'); });
+    if (!isOpen) {
+      panel.classList.add('open');
+      var inp = panel.querySelector('input');
+      if (inp) { inp.value = ''; epFilter(pid, ''); setTimeout(function(){ inp.focus(); }, 50); }
+    }
+  };
+
+  window.epFilter = function(pid, q) {
+    var grid = $id(pid + '-grid');
+    if (!grid) return;
+    q = q.toLowerCase();
+    grid.querySelectorAll('.ep-item').forEach(function(el) {
+      var name = (el.title || '').toLowerCase();
+      el.style.display = (!q || name.includes(q)) ? '' : 'none';
+    });
+  };
+
+  window.epInsert = function(tid, text) {
+    var ta = $id(tid);
+    if (!ta) return;
+    var s = ta.selectionStart, e = ta.selectionEnd;
+    ta.value = ta.value.slice(0, s) + text + ta.value.slice(e);
+    ta.selectionStart = ta.selectionEnd = s + text.length;
+    ta.focus();
+    // Fermer le picker
+    document.querySelectorAll('.ep-panel.open').forEach(function(p) { p.classList.remove('open'); });
+  };
+
+  // Fermer les pickers en cliquant ailleurs
+  document.addEventListener('click', function(ev) {
+    if (!ev.target.closest('.ep-wrap') && !ev.target.closest('.panel-option') && !ev.target.closest('.fmt-bar')) {
+      document.querySelectorAll('.ep-panel.open').forEach(function(p) { p.classList.remove('open'); });
+    }
+  });
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function gv(id) { var el = $id(id); return el ? el.value : ''; }
+
+  function getChecked(id) {
+    var el = $id(id);
+    if (!el) return [];
+    return Array.from(el.querySelectorAll('input[type=checkbox]:checked')).map(function(c){return c.value;});
+  }
+
+  function toast(msg, type) {
+    var t = $id('toast');
+    t.textContent = (type==='ok'?'✓ ':'✗ ') + msg;
+    t.className = 'show ' + type;
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function(){ t.className=''; }, 3000);
+  }
+
+  // ── Select builders ────────────────────────────────────────────────────────
+
+  function chSel(id, val, nullable) {
+    var o = nullable ? '<option value="">— aucun —</option>' : '';
+    (gd.channels||[]).forEach(function(c){
+      o += '<option value="'+c.id+'"'+(c.id===val?' selected':'')+'>＃'+esc(c.name)+'</option>';
+    });
+    return '<select id="'+id+'">'+o+'</select>';
+  }
+
+  // Sélecteur canal + fils (pour les logs)
+  function logChSel(id, val, nullable) {
+    var o = nullable ? '<option value="">— aucun —</option>' : '';
+    // Canaux normaux
+    if ((gd.channels||[]).length) {
+      o += '<optgroup label="── Canaux texte ──">';
+      (gd.channels||[]).forEach(function(c){
+        o += '<option value="'+c.id+'"'+(c.id===val?' selected':'')+'>＃'+esc(c.name)+'</option>';
+      });
+      o += '</optgroup>';
+    }
+    // Fils actifs
+    if ((gd.threads||[]).length) {
+      o += '<optgroup label="── Fils actifs ──">';
+      (gd.threads||[]).forEach(function(t){
+        var parent = (gd.channels||[]).find(function(c){ return c.id===t.parent_id; });
+        var prefix = parent ? '＃'+parent.name+' › ' : '';
+        o += '<option value="'+t.id+'"'+(t.id===val?' selected':'')+'>↳ '+esc(prefix+t.name)+'</option>';
+      });
+      o += '</optgroup>';
+    }
+    return '<select id="'+id+'">'+o+'</select>';
+  }
+
+  function catSel(id, val, nullable) {
+    var o = nullable ? '<option value="">— aucun —</option>' : '';
+    (gd.categories||[]).forEach(function(c){
+      o += '<option value="'+c.id+'"'+(c.id===val?' selected':'')+'>'+esc(c.name)+'</option>';
+    });
+    return '<select id="'+id+'">'+o+'</select>';
+  }
+
+  function roleSel(id, val, nullable) {
+    var o = nullable ? '<option value="">— aucun —</option>' : '';
+    (gd.roles||[]).forEach(function(r){
+      o += '<option value="'+r.id+'"'+(r.id===val?' selected':'')+'>'+esc(r.name)+'</option>';
+    });
+    return '<select id="'+id+'">'+o+'</select>';
+  }
+
+  function roleChecks(id, selected) {
+    var sel = selected || [];
+    var h = '<div class="role-checks" id="'+id+'">';
+    (gd.roles||[]).forEach(function(r){
+      h += '<label><input type="checkbox" value="'+r.id+'"'+(sel.includes(r.id)?' checked':'')+'>'+esc(r.name)+'</label>';
+    });
+    h += '</div>';
+    return h;
+  }
+
+  // ── Save ───────────────────────────────────────────────────────────────────
+
+  async function patch(data) {
+    try {
+      var r = await fetch('/api/guild/'+guildId, {
+        method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)
+      });
+      var j = await r.json();
+      if (r.ok) { gd.config = j.config; toast('Sauvegardé !','ok'); }
+      else toast('Erreur : '+(j.error||r.status),'err');
+    } catch(e) { toast('Erreur réseau','err'); }
+  }
+
+  // ── Tab renderers ──────────────────────────────────────────────────────────
+
+  function tabOverview() {
+    var s = gd.stats || {};
+    var top = s.topXp || [];
+    var h = '<h1 class="tab-title">Vue d\'ensemble</h1><p class="tab-desc">Statistiques du serveur.</p>';
+    h += '<div class="stats-grid">';
+    h += '<div class="stat-card"><div class="stat-val">'+(s.memberCount||0)+'</div><div class="stat-lbl">Membres</div></div>';
+    h += '<div class="stat-card"><div class="stat-val">'+(s.xpUsers||0)+'</div><div class="stat-lbl">Joueurs XP</div></div>';
+    if (s.errors > 0) h += '<div class="stat-card" style="border-color:rgba(248,113,113,.3)"><div class="stat-val" style="color:var(--danger)">'+s.errors+'</div><div class="stat-lbl">Erreurs</div></div>';
+    h += '</div>';
+    if (top.length) {
+      h += '<div class="sec"><div class="sec-t">Top XP</div>';
+      top.forEach(function(u,i){
+        h += '<div class="lb-row"><div class="lb-rank">'+(i+1)+'</div><div class="lb-info">'+esc(u.username||u.user_id)+'</div><div class="lb-xp">Niv.'+u.level+' · '+u.xp+' XP</div></div>';
+      });
+      h += '</div>';
+    }
+    return h;
+  }
+
+  function tabGeneral() {
+    var c = gd.config;
+    return '<h1 class="tab-title">Général</h1><p class="tab-desc">Rôles de gestion et canaux principaux.</p>'
+      +'<div class="sec"><div class="sec-t">Rôles</div>'
+      +'<div class="field"><label>Rôles propriétaires</label>'+roleChecks('owner-roles',c.OWNER_ROLES||[])+'</div>'
+      +'<div class="field"><label>Rôle staff</label>'+roleSel('staff-role',c.STAFF_ROLE,true)+'</div>'
+      +'<div class="field"><label>Rôle automatique à l\'arrivée</label>'+roleSel('auto-role',c.AUTO_ROLE,true)+'</div>'
+      +'</div>'
+      +'<div class="sec"><div class="sec-t">Canaux</div><div class="r2">'
+      +'<div class="field"><label>Logs de modération</label>'+chSel('mod-log',c.MOD_LOG_CHANNEL,true)+'</div>'
+      +'<div class="field"><label>Suggestions</label>'+chSel('suggestion',c.SUGGESTION_CHANNEL,true)+'</div>'
+      +'</div></div>'
+      +'<button class="btn-save" id="btn-gen">Enregistrer</button>';
+  }
+
+  function tabAutomod() {
+    wordList = (gd.config.WORD_FILTER||[]).slice();
+    var c = gd.config;
+    var spamEnabled = c.ANTI_SPAM_ENABLED ? ' checked' : '';
+    return '<h1 class="tab-title">Automodération</h1><p class="tab-desc">Filtres automatiques contre les messages indésirables.</p>'
+      +'<div class="sec"><div class="sec-t">Anti-spam</div>'
+      +'<div class="field"><label style="display:flex;align-items:center;gap:.5rem;cursor:pointer"><input type="checkbox" id="spam-on"'+spamEnabled+'> Activer l\'anti-spam</label></div>'
+      +'<div class="r2">'
+      +'<div class="field"><label>Messages max par fenêtre</label><input type="number" id="spam-max" value="'+(c.ANTI_SPAM_MAX_MESSAGES||5)+'" min="2" max="20"></div>'
+      +'<div class="field"><label>Fenêtre (secondes)</label><input type="number" id="spam-win" value="'+Math.round((c.ANTI_SPAM_WINDOW_MS||5000)/1000)+'" min="1" max="60"></div>'
+      +'</div></div>'
+      +'<div class="sec"><div class="sec-t">Filtre de mots</div>'
+      +'<div id="wt" class="tags"></div>'
+      +'<div class="add-row"><input id="wi" type="text" placeholder="Ajouter un mot…"><button class="btn-add" id="wa">Ajouter</button></div>'
+      +'</div>'
+      +'<button class="btn-save" id="btn-am" style="margin-top:1rem">Enregistrer</button>';
+  }
+
+  function afterAutomod() {
+    renderWords();
+    $id('wa').addEventListener('click', addWord);
+    $id('wi').addEventListener('keydown', function(e){ if(e.key==='Enter'){e.preventDefault();addWord();} });
+    $id('btn-am').addEventListener('click', function(){
+      patch({
+        WORD_FILTER: wordList,
+        ANTI_SPAM_ENABLED: $id('spam-on').checked,
+        ANTI_SPAM_MAX_MESSAGES: parseInt($id('spam-max').value)||5,
+        ANTI_SPAM_WINDOW_MS: (parseInt($id('spam-win').value)||5) * 1000,
+      });
+    });
+  }
+
+  function addWord() {
+    var v = $id('wi').value.trim().toLowerCase();
+    if (v && !wordList.includes(v)) { wordList.push(v); $id('wi').value=''; renderWords(); }
+  }
+
+  function renderWords() {
+    var w = $id('wt'); if (!w) return;
+    w.innerHTML = wordList.map(function(s,i){
+      return '<div class="tag"><span>'+esc(s)+'</span><button onclick="RW('+i+')">×</button></div>';
+    }).join('');
+  }
+  window.RW = function(i){ wordList.splice(i,1); renderWords(); };
+
+  function tabLogs() {
+    var L = gd.config.LOGS||{};
+    return '<h1 class="tab-title">Journaux</h1><p class="tab-desc">Canal de destination pour chaque type de log.</p>'
+      +'<div class="sec"><div class="sec-t">Canaux</div><div class="r2">'
+      +'<div class="field"><label>Messages (édit/supp)</label>'+logChSel('lm',L.messages,true)+'</div>'
+      +'<div class="field"><label>Modération</label>'+logChSel('lmod',L.moderation,true)+'</div>'
+      +'<div class="field"><label>Vocal</label>'+logChSel('lv',L.vocal,true)+'</div>'
+      +'<div class="field"><label>Serveur (rôles/canaux)</label>'+logChSel('ls',L.server,true)+'</div>'
+      +'<div class="field"><label>Commandes</label>'+logChSel('lc',L.commands,true)+'</div>'
+      +'</div></div>'
+      +'<button class="btn-save" id="btn-logs">Enregistrer</button>';
+  }
+
+  function tabWelcome() {
+    var c = gd.config;
+    var col = c.WELCOME_COLOR||'#c9a84c';
+    var dmOn = c.DM_ENABLED ? ' checked' : '';
+    return '<h1 class="tab-title">Bienvenue</h1><p class="tab-desc">Messages d\'arrivée et de départ. Variables : {user} {server} {count}</p>'
+      +'<div class="sec"><div class="sec-t">Arrivée</div><div class="r2">'
+      +'<div class="field"><label>Canal de bienvenue</label>'+chSel('wch',c.WELCOME_CHANNEL,true)+'</div>'
+      +'<div class="field"><label>Couleur de l\'encart</label><div class="color-row"><input type="color" id="wcp" value="'+esc(col)+'"><input type="text" id="wct" value="'+esc(col)+'" placeholder="#c9a84c"></div></div>'
+      +'</div>'
+      +'<div class="field"><label>Message de bienvenue</label>'+txtArea('wmsg',esc(c.WELCOME_MESSAGE||''))+'</div>'
+      +'</div>'
+      +'<div class="sec"><div class="sec-t">Rôles automatiques</div><div class="r2">'
+      +'<div class="field"><label>Rôle en attente (avant vérif)</label>'+roleSel('pend-role',c.PENDING_ROLE,true)+'</div>'
+      +'<div class="field"><label>Rôle après vérification</label>'+roleSel('verif-role',c.VERIFIED_ROLE,true)+'</div>'
+      +'</div></div>'
+      +'<div class="sec"><div class="sec-t">Message privé (DM)</div>'
+      +'<div class="field"><label style="display:flex;align-items:center;gap:.5rem;cursor:pointer"><input type="checkbox" id="dm-on"'+dmOn+'> Envoyer un DM à l\'arrivée</label></div>'
+      +'<div class="field"><label>Contenu du DM</label>'+txtArea('dm-msg',esc(c.DM_MESSAGE||''))+'</div>'
+      +'</div>'
+      +'<div class="sec"><div class="sec-t">Départ</div>'
+      +'<div class="field"><label>Canal au revoir</label>'+chSel('gch',c.GOODBYE_CHANNEL,true)+'</div>'
+      +'<div class="field"><label>Message au revoir</label>'+txtArea('gmsg',esc(c.GOODBYE_MESSAGE||''))+'</div>'
+      +'</div>'
+      +'<button class="btn-save" id="btn-wel">Enregistrer</button>';
+  }
+
+  function afterWelcome() {
+    var picker = $id('wcp'), txt = $id('wct');
+    picker.addEventListener('input', function(){ txt.value = picker.value; });
+    txt.addEventListener('change', function(){ if(/^#[0-9a-f]{6}$/i.test(txt.value)) picker.value=txt.value; });
+    $id('btn-wel').addEventListener('click', function(){
+      patch({
+        WELCOME_CHANNEL:gv('wch')||null, WELCOME_MESSAGE:$id('wmsg').value||null,
+        WELCOME_COLOR:txt.value||null,
+        PENDING_ROLE:gv('pend-role')||null, VERIFIED_ROLE:gv('verif-role')||null,
+        DM_ENABLED:$id('dm-on').checked, DM_MESSAGE:$id('dm-msg').value||null,
+        GOODBYE_CHANNEL:gv('gch')||null, GOODBYE_MESSAGE:$id('gmsg').value||null,
+      });
+    });
+  }
+
+  function tabLevels() {
+    lvlRoles = Object.assign({}, gd.config.LEVEL_ROLES||{});
+    return '<h1 class="tab-title">Niveaux XP</h1><p class="tab-desc">Canal d\'annonce et récompenses de niveaux.</p>'
+      +'<div class="sec"><div class="sec-t">Canal</div>'
+      +'<div class="field"><label>Canal d\'annonce</label>'+chSel('lch',gd.config.LEVEL_CHANNEL,true)+'</div>'
+      +'</div>'
+      +'<div class="sec"><div class="sec-t">Rôles de niveau</div>'
+      +'<table class="tbl"><thead><tr><th>Niveau min.</th><th>Rôle</th><th></th></tr></thead><tbody id="lrt"></tbody></table>'
+      +'<div class="add-row" style="margin-top:0.8rem">'
+      +'<input type="number" id="nln" placeholder="Niv." style="width:74px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:.5rem;font-size:.85rem">'
+      +roleSel('nlr',null,true)
+      +'<button class="btn-add" id="lra">Ajouter</button></div>'
+      +'</div>'
+      +'<button class="btn-save" id="btn-lvl" style="margin-top:1rem">Enregistrer</button>';
+  }
+
+  function afterLevels() {
+    renderLvlRoles();
+    $id('lra').addEventListener('click', function(){
+      var lvl = parseInt($id('nln').value), role = gv('nlr');
+      if (!lvl || !role) return;
+      lvlRoles[String(lvl)] = role; $id('nln').value=''; renderLvlRoles();
+    });
+    $id('btn-lvl').addEventListener('click', function(){
+      patch({LEVEL_CHANNEL:gv('lch')||null, LEVEL_ROLES:lvlRoles});
+    });
+  }
+
+  function renderLvlRoles() {
+    var tb = $id('lrt'); if (!tb) return;
+    var entries = Object.entries(lvlRoles);
+    if (!entries.length) { tb.innerHTML='<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:.8rem">Aucun rôle configuré</td></tr>'; return; }
+    tb.innerHTML = entries.sort(function(a,b){return Number(a[0])-Number(b[0]);}).map(function(p){
+      var r = (gd.roles||[]).find(function(x){return x.id===p[1];});
+      return '<tr><td>Niveau '+p[0]+'</td><td>'+(r?esc(r.name):p[1])+'</td><td><button class="btn-del" onclick="RLR(\''+p[0]+'\')">Supprimer</button></td></tr>';
+    }).join('');
+  }
+  window.RLR = function(l){ delete lvlRoles[l]; renderLvlRoles(); };
+
+  function tabTickets() {
+    var c = gd.config;
+    return '<h1 class="tab-title">Tickets</h1><p class="tab-desc">Système de tickets de support.</p>'
+      +'<div class="sec"><div class="sec-t">Configuration</div><div class="r2">'
+      +'<div class="field"><label>Catégorie des tickets</label>'+catSel('tcat',c.TICKET_CATEGORY,true)+'</div>'
+      +'<div class="field"><label>Canal du panel</label>'+chSel('tpan',c.TICKET_PANEL_CHANNEL,true)+'</div>'
+      +'<div class="field"><label>Canal de logs tickets</label>'+chSel('tlog',c.TICKET_LOG_CHANNEL,true)+'</div>'
+      +'</div></div>'
+      +'<button class="btn-save" id="btn-tkt">Enregistrer</button>';
+  }
+
+  function tabRoles() {
+    var c = gd.config;
+    var sel = (c.ROLE_BUTTONS||[]).map(function(b){return typeof b==='string'?b:b.role_id;});
+    return '<h1 class="tab-title">Accès rapide</h1><p class="tab-desc">Boutons de rôles en libre-service, affichés directement dans un salon Discord.</p>'
+      +'<div class="sec"><div class="sec-t">Canal des boutons</div>'
+      +'<div class="field"><label>Canal</label>'+chSel('rbch',c.ROLE_BUTTONS_CHANNEL,true)+'</div>'
+      +'</div>'
+      +'<div class="sec"><div class="sec-t">Rôles proposés</div>'+roleChecks('rbc',sel)+'</div>'
+      +'<button class="btn-save" id="btn-roles" style="margin-top:1rem">Enregistrer</button>';
+  }
+
+  function tabAdvanced() {
+    var c = gd.config;
+    return '<h1 class="tab-title">Avancé</h1><p class="tab-desc">Starboard, salons vocaux temporaires, stats et anniversaires.</p>'
+      // Starboard
+      +'<div class="sec"><div class="sec-t">⭐ Starboard</div>'
+      +'<div class="r2">'
+      +'<div class="field"><label>Canal starboard</label>'+chSel('sb-ch',c.STARBOARD_CHANNEL,true)+'</div>'
+      +'<div class="field"><label>Étoiles nécessaires</label><input type="number" id="sb-thresh" value="'+(c.STARBOARD_THRESHOLD||3)+'" min="1" max="50"></div>'
+      +'</div></div>'
+      // Temp voice
+      +'<div class="sec"><div class="sec-t">🔊 Salons vocaux temporaires</div>'
+      +'<div class="r2">'
+      +'<div class="field"><label>Salon hub (rejoindre pour créer)</label>'+chSel('tv-hub',c.TEMP_VOICE_HUB,true)+'</div>'
+      +'<div class="field"><label>Catégorie des salons créés</label>'+catSel('tv-cat',c.TEMP_VOICE_CATEGORY,true)+'</div>'
+      +'</div></div>'
+      // Stats channels
+      +'<div class="sec"><div class="sec-t">📊 Salons statistiques</div>'
+      +'<p style="color:var(--muted);font-size:.81rem;margin-bottom:.8rem">Ces salons vocaux sont renommés automatiquement avec le compteur.</p>'
+      +'<div class="r2">'
+      +'<div class="field"><label>Salon compteur membres</label>'+chSel('stat-m',c.STATS_MEMBER_CHANNEL,true)+'</div>'
+      +'<div class="field"><label>Salon compteur bots</label>'+chSel('stat-b',c.STATS_BOT_CHANNEL,true)+'</div>'
+      +'</div></div>'
+      // Birthdays
+      +'<div class="sec"><div class="sec-t">🎂 Anniversaires</div>'
+      +'<div class="field"><label>Canal d\'annonce des anniversaires</label>'+chSel('bday-ch',c.BIRTHDAY_CHANNEL,true)+'</div>'
+      +'</div>'
+      +'<button class="btn-save" id="btn-adv">Enregistrer</button>';
+  }
+
+  function tabTwitch() {
+    twitchList = (gd.config.TWITCH_STREAMERS||[]).slice();
+    return '<h1 class="tab-title">Twitch</h1><p class="tab-desc">Annonce automatique quand un streamer passe en live.</p>'
+      +'<div class="sec"><div class="sec-t">Canal d\'annonce</div>'
+      +'<div class="field"><label>Canal</label>'+chSel('twch',gd.config.TWITCH_ANNOUNCE_CHANNEL,true)+'</div>'
+      +'</div>'
+      +'<div class="sec"><div class="sec-t">Streamers suivis</div>'
+      +'<div id="twt" class="tags"></div>'
+      +'<div class="add-row"><input id="twi" type="text" placeholder="Pseudo Twitch…"><button class="btn-add" id="twa">Ajouter</button></div>'
+      +'</div>'
+      +'<button class="btn-save" id="btn-tw" style="margin-top:1rem">Enregistrer</button>';
+  }
+
+  function afterTwitch() {
+    renderTwitch();
+    $id('twa').addEventListener('click', addTwitch);
+    $id('twi').addEventListener('keydown', function(e){ if(e.key==='Enter'){e.preventDefault();addTwitch();} });
+    $id('btn-tw').addEventListener('click', function(){ patch({TWITCH_ANNOUNCE_CHANNEL:gv('twch')||null, TWITCH_STREAMERS:twitchList}); });
+  }
+
+  function addTwitch() {
+    var v = $id('twi').value.trim().toLowerCase();
+    if (v && !twitchList.includes(v)) { twitchList.push(v); $id('twi').value=''; renderTwitch(); }
+  }
+
+  function renderTwitch() {
+    var w = $id('twt'); if (!w) return;
+    w.innerHTML = twitchList.map(function(s,i){
+      return '<div class="tag"><span>'+esc(s)+'</span><button onclick="RTW('+i+')">×</button></div>';
+    }).join('');
+  }
+  window.RTW = function(i){ twitchList.splice(i,1); renderTwitch(); };
+
+  // ── Panneaux ───────────────────────────────────────────────────────────────
+
+  var panelOptions = []; // [{roleId, label, emoji, emojiId, emojiName, emojiAnimated, description}]
+
+  function tabPanneaux() {
+    panelOptions = [];
+    return '<h1 class="tab-title">Panneaux de rôles</h1>'
+      +'<p class="tab-desc">Crée un menu déroulant interactif pour l\'attribution de rôles. L\'encart et le menu sont envoyés directement dans le salon de ton choix.</p>'
+
+      // Canal
+      +'<div class="sec"><div class="sec-t">Destination</div>'
+        +'<div class="field"><label>Canal d\'envoi</label>'+chSel('pan-ch',null,true)+'</div>'
+      +'</div>'
+
+      // Embed
+      +'<div class="sec"><div class="sec-t">Contenu du message</div>'
+        // Mode message simple
+        +'<div class="field"><label>Texte simple (optionnel)</label>'
+          +txtArea('pan-content','')
+        +'</div>'
+        +'<div class="r2">'
+          +'<div class="field"><label>Titre de l\'encart</label><input type="text" id="pan-title" placeholder="Ex: Choisis ton rôle" maxlength="256"></div>'
+          +'<div class="field"><label>Couleur de l\'encart</label><div class="color-row"><input type="color" id="pan-cp" value="#c9a84c"><input type="text" id="pan-ct" value="#c9a84c" placeholder="#c9a84c"></div></div>'
+        +'</div>'
+        // Description de l'encart
+        +'<div class="field"><label>Description de l\'encart</label>'
+          +'<div class="fmt-bar">'
+            +'<button type="button" class="fmt-btn" onclick="fmt(\'pan-desc\',\'**\',\'**\')" title="Gras"><b>G</b></button>'
+            +'<button type="button" class="fmt-btn" onclick="fmt(\'pan-desc\',\'*\',\'*\')" title="Italique"><i>I</i></button>'
+            +'<button type="button" class="fmt-btn" onclick="fmt(\'pan-desc\',\'__\',\'__\')" title="Souligné"><u>S</u></button>'
+            +'<button type="button" class="fmt-btn" onclick="fmt(\'pan-desc\',\'~~\',\'~~\')" title="Barré"><s>B</s></button>'
+            +'<button type="button" class="fmt-btn" onclick="fmt(\'pan-desc\',\'\`\',\'\`\')" title="Code">{ }</button>'
+            +'<button type="button" class="fmt-btn" onclick="fmt(\'pan-desc\',\'||\',\'||\')" title="Spoiler">||</button>'
+            +'<div class="fmt-sep"></div>'
+            +'<button type="button" class="fmt-btn" onclick="insertVar(\'pan-desc\',\'{user}\')">{user}</button>'
+            +'<button type="button" class="fmt-btn" onclick="insertVar(\'pan-desc\',\'{server}\')">{server}</button>'
+            +'<button type="button" class="fmt-btn" onclick="insertVar(\'pan-desc\',\'{count}\')">{count}</button>'
+            +'<div class="fmt-sep"></div>'
+            +(gd.emojis?.length ? '<button type="button" class="ep-btn" style="position:static;margin:0" onclick="epToggle(\'ep-pan-desc\',\'pan-desc\',event)">😀 Emotes</button>' : '')
+          +'</div>'
+          +'<div class="ep-wrap fmt-ta">'
+            +'<textarea id="pan-desc" style="border-radius:0 0 8px 8px;min-height:90px" placeholder="Description affichée dans l\'encart..."></textarea>'
+            +(gd.emojis?.length
+              ? '<div class="ep-panel" id="ep-pan-desc">'
+                  +'<div class="ep-search"><input type="text" placeholder="Rechercher…" oninput="epFilter(\'ep-pan-desc\',this.value)"></div>'
+                  +'<div class="ep-grid" id="ep-pan-desc-grid">'
+                  +(gd.emojis||[]).map(function(e){ return '<div class="ep-item" onclick="epInsert(\'pan-desc\',\''+(e.animated?'<a:':'<:')+e.name+':'+e.id+'>\')" title=":'+e.name+':" ><img src="'+emojiUrl(e)+'" alt="" loading="lazy"><span class="ep-tt">:'+e.name+':</span></div>'; }).join('')
+                  +'</div></div>'
+              : '')
+          +'</div>'
+        +'</div>'
+        // Images
+        +'<div class="r2">'
+          +'<div class="field"><label>Image principale <span style="color:var(--muted);font-size:0.75rem">(grande image en bas · URL ou fichier · GIF supporté)</span></label>'
+            +'<div style="display:flex;gap:0.4rem;align-items:center">'
+              +'<input type="text" id="pan-img" placeholder="https://..." style="flex:1">'
+              +'<button type="button" class="fmt-btn" onclick="imgFilePick(\'pan-img\',\'pan-img-file\')">📂 Fichier</button>'
+              +'<input type="file" id="pan-img-file" accept="image/*" style="display:none" onchange="imgFileUpload(this,\'pan-img\')">'
+            +'</div>'
+          +'</div>'
+          +'<div class="field"><label>Miniature <span style="color:var(--muted);font-size:0.75rem">(haut à droite · URL ou fichier · GIF supporté)</span></label>'
+            +'<div style="display:flex;gap:0.4rem;align-items:center">'
+              +'<input type="text" id="pan-thumb" placeholder="https://..." style="flex:1">'
+              +'<button type="button" class="fmt-btn" onclick="imgFilePick(\'pan-thumb\',\'pan-thumb-file\')">📂 Fichier</button>'
+              +'<input type="file" id="pan-thumb-file" accept="image/*" style="display:none" onchange="imgFileUpload(this,\'pan-thumb\')">'
+            +'</div>'
+          +'</div>'
+        +'</div>'
+      +'</div>'
+
+      // Menu select
+      +'<div class="sec"><div class="sec-t">Menu déroulant</div>'
+        +'<div class="r2">'
+          +'<div class="field"><label>Texte indicatif du menu <span style="color:var(--muted);font-size:0.75rem">(affiché quand rien n\'est sélectionné)</span></label><input type="text" id="pan-ph" placeholder="Choisis ton rôle..." maxlength="150"></div>'
+          +'<div class="field"><label>Mode sélection</label>'
+            +'<div class="toggle-row" style="margin-top:0.4rem">'
+              +'<label class="toggle"><input type="checkbox" id="pan-multi"><span class="toggle-slider"></span></label>'
+              +'<span style="font-size:0.85rem;color:var(--muted2)">Choix multiple <span style="color:var(--muted);font-size:0.78rem">(sinon : un seul rôle à la fois)</span></span>'
+            +'</div>'
+          +'</div>'
+        +'</div>'
+      +'</div>'
+
+      // Options / rôles
+      +'<div class="sec"><div class="sec-t">Rôles dans le menu</div>'
+        +'<div id="pan-opts-list"></div>'
+        +'<button type="button" class="btn-add" style="margin-top:0.7rem" onclick="panAddOpt()">+ Ajouter un rôle</button>'
+      +'</div>'
+
+      // Panneaux existants
+      +'<div class="sec"><div class="sec-t">Panneaux existants</div><div id="pan-existing" style="color:var(--muted);font-size:0.82rem">Chargement…</div></div>'
+
+      +'<button class="btn-save" id="pan-send" style="margin-top:1rem">Envoyer dans le salon</button>'
+      +'<p id="pan-status" style="margin-top:0.5rem;font-size:0.82rem;color:var(--muted)"></p>';
+  }
+
+  function syncPanelOptions() {
+    document.querySelectorAll('#pan-opts-list .panel-option').forEach(function(el, i) {
+      if (i >= panelOptions.length) return;
+      var sel  = el.querySelector('select');
+      var rows = el.querySelectorAll('input[type=text]');
+      if (sel)     panelOptions[i].roleId      = sel.value;
+      if (rows[0]) panelOptions[i].label       = rows[0].value;
+      if (rows[1]) panelOptions[i].description = rows[1].value;
+    });
+  }
+
+  function panRenderOpts() {
+    syncPanelOptions(); // capture les valeurs DOM avant de re-rendre
+    var list = $id('pan-opts-list');
+    if (!list) return;
+    if (!panelOptions.length) { list.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin-bottom:0.5rem">Aucun rôle ajouté.</p>'; return; }
+    list.innerHTML = panelOptions.map(function(o, i) {
+      var emojiHtml = o.emojiId
+        ? '<img src="https://cdn.discordapp.com/emojis/'+o.emojiId+(o.emojiAnimated?'.gif':'.png')+'?size=32" style="width:20px;height:20px;vertical-align:middle">'
+        : (o.emoji ? '<span>'+o.emoji+'</span>' : '');
+      var roleName = (gd.roles||[]).find(function(r){return r.id===o.roleId;});
+      return '<div class="panel-option" data-i="'+i+'">'
+        +'<div class="panel-option-row">'
+          +'<span class="panel-emoji-preview">'+emojiHtml+'</span>'
+          +'<select onchange="panelOptions['+i+'].roleId=this.value;panRenderOpts()">'
+            +'<option value="">— Choisir un rôle —</option>'
+            +(gd.roles||[]).map(function(r){ return '<option value="'+r.id+'"'+(r.id===o.roleId?' selected':'')+'>'+esc(r.name)+'</option>'; }).join('')
+          +'</select>'
+          +'<input type="text" placeholder="Nom (ex: Rose)" value="'+esc(o.label||'')+'" oninput="panelOptions['+i+'].label=this.value" maxlength="100">'
+          +'<button type="button" class="panel-emoji-btn" onclick="panPickEmoji('+i+',event)">😀</button>'
+          +'<button type="button" class="btn-del" onclick="panelOptions.splice('+i+',1);panRenderOpts()">×</button>'
+        +'</div>'
+        +'<div class="panel-option-row">'
+          +'<input type="text" placeholder="Description courte (optionnel)" value="'+esc(o.description||'')+'" oninput="panelOptions['+i+'].description=this.value" maxlength="100" style="flex:1">'
+        +'</div>'
+        // Mini emoji picker
+        +(gd.emojis?.length ? '<div class="ep-panel" id="ep-opt-'+i+'" style="position:relative;top:0;max-height:160px">'
+            +'<div class="ep-search"><input type="text" placeholder="Rechercher…" oninput="epFilter(\'ep-opt-'+i+'\',this.value)"></div>'
+            +'<div class="ep-grid" id="ep-opt-'+i+'-grid">'
+            +(gd.emojis||[]).map(function(e){ return '<div class="ep-item" onclick="panSetEmoji('+i+',\''+e.id+'\',\''+esc(e.name)+'\','+!!e.animated+')" title=":'+e.name+':" ><img src="'+emojiUrl(e)+'" alt="" loading="lazy"><span class="ep-tt">:'+e.name+':</span></div>'; }).join('')
+            +'</div></div>' : '')
+      +'</div>';
+    }).join('');
+  }
+
+  window.imgFilePick = function(urlId, fileId) {
+    var fi = $id(fileId); if (fi) fi.click();
+  };
+
+  window.imgFileUpload = function(input, urlId) {
+    var file = input.files[0]; if (!file) return;
+    if (file.size > 8 * 1024 * 1024) return toast('Fichier trop lourd (max 8 Mo)', 'err');
+    var urlEl = $id(urlId);
+    if (urlEl) urlEl.placeholder = '⏳ Envoi...';
+    var reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        var r = await fetch('/api/upload-image', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ data: e.target.result, filename: file.name }) });
+        var d = await r.json();
+        if (d.url && urlEl) { urlEl.value = d.url; urlEl.placeholder = ''; toast('Image uploadée ✅', 'ok'); }
+        else { if (urlEl) urlEl.placeholder = ''; toast('Erreur upload : ' + (d.error||'inconnue'), 'err'); }
+      } catch(err) { if (urlEl) urlEl.placeholder = ''; toast('Erreur upload : ' + err.message, 'err'); }
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+  };
+
+  window.panAddOpt = function() {
+    panelOptions.push({ roleId:'', label:'', emoji:'', emojiId:'', emojiName:'', emojiAnimated:false, description:'' });
+    panRenderOpts();
+  };
+
+  window.panPickEmoji = function(i, ev) {
+    if (ev) ev.stopPropagation();
+    var pid = 'ep-opt-'+i;
+    var panel = $id(pid);
+    if (!panel) return;
+    var open = panel.classList.contains('open');
+    document.querySelectorAll('.ep-panel.open').forEach(function(p){ p.classList.remove('open'); });
+    if (!open) {
+      panel.classList.add('open');
+      var inp = panel.querySelector('input');
+      if (inp) { inp.value=''; epFilter(pid,''); setTimeout(function(){ inp.focus(); },50); }
+    }
+  };
+
+  window.panSetEmoji = function(i, id, name, animated) {
+    panelOptions[i].emojiId = id; panelOptions[i].emojiName = name; panelOptions[i].emojiAnimated = animated;
+    panelOptions[i].emoji = '';
+    document.querySelectorAll('.ep-panel.open').forEach(function(p){ p.classList.remove('open'); });
+    // Mise à jour de l'icône en place, sans re-rendre tout le DOM
+    var opt = document.querySelectorAll('#pan-opts-list .panel-option')[i];
+    if (opt) {
+      var preview = opt.querySelector('.panel-emoji-preview');
+      if (preview) {
+        var ext = animated ? 'gif' : 'png';
+        preview.innerHTML = '<img src="https://cdn.discordapp.com/emojis/'+id+'.'+ext+'?size=32" style="width:20px;height:20px;vertical-align:middle">';
+      }
+    }
+  };
+
+  window.fmt = function(id, before, after) {
+    var ta = $id(id); if (!ta) return;
+    var s = ta.selectionStart, e = ta.selectionEnd;
+    var sel = ta.value.slice(s, e) || 'texte';
+    ta.value = ta.value.slice(0, s) + before + sel + after + ta.value.slice(e);
+    ta.selectionStart = s + before.length;
+    ta.selectionEnd   = s + before.length + sel.length;
+    ta.focus();
+  };
+
+  window.insertVar = function(id, v) {
+    var ta = $id(id); if (!ta) return;
+    var s = ta.selectionStart;
+    ta.value = ta.value.slice(0, s) + v + ta.value.slice(s);
+    ta.selectionStart = ta.selectionEnd = s + v.length;
+    ta.focus();
+  };
+
+  function afterPanneaux() {
+    // Color picker sync
+    var cp = $id('pan-cp'), ct = $id('pan-ct');
+    if (cp && ct) {
+      cp.addEventListener('input', function(){ ct.value = cp.value; });
+      ct.addEventListener('change', function(){ if(/^#[0-9a-f]{6}$/i.test(ct.value)) cp.value=ct.value; });
+    }
+
+    // Send
+    $id('pan-send').addEventListener('click', async function() {
+      var channelId = gv('pan-ch');
+      if (!channelId) return toast('Sélectionne un canal', 'err');
+      if (!panelOptions.length) return toast('Ajoute au moins un rôle', 'err');
+
+      // Sync depuis le DOM pour éviter tout désync d'état
+      document.querySelectorAll('#pan-opts-list .panel-option').forEach(function(el, i) {
+        if (i >= panelOptions.length) return;
+        var sel  = el.querySelector('select');
+        var rows = el.querySelectorAll('input[type=text]');
+        if (sel)    panelOptions[i].roleId      = sel.value;
+        if (rows[0]) panelOptions[i].label      = rows[0].value;
+        if (rows[1]) panelOptions[i].description = rows[1].value;
+      });
+
+      if (panelOptions.some(function(o){ return !o.roleId; })) return toast('Sélectionne un rôle pour chaque ligne', 'err');
+
+      var body = {
+        channelId,
+        placeholder: gv('pan-ph') || 'Choisir...',
+        multi: $id('pan-multi').checked,
+        options: panelOptions,
+        embed: {
+          content:     ($id('pan-content').value || '').trim() || undefined,
+          title:       (gv('pan-title') || '').trim() || undefined,
+          description: ($id('pan-desc').value || '').trim() || undefined,
+          color:       ct ? ct.value : '#c9a84c',
+          image:       (gv('pan-img') || '').trim() || undefined,
+          thumbnail:   (gv('pan-thumb') || '').trim() || undefined,
+        },
+      };
+
+      $id('pan-status').textContent = '⏳ Envoi en cours...';
+      try {
+        var r = await fetch('/api/guild/'+guildId+'/panel', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        var d = await r.json();
+        if (d.ok) {
+          toast('Panneau envoyé !', 'ok');
+          $id('pan-status').textContent = '✅ Envoyé — ID message : ' + d.messageId;
+          loadPanels();
+        } else {
+          toast('Erreur : ' + (d.error || 'inconnue'), 'err');
+          $id('pan-status').textContent = '❌ ' + (d.error || 'Erreur') + (d.code ? ' (code '+d.code+')' : '');
+        }
+      } catch(e) { toast('Erreur réseau', 'err'); $id('pan-status').textContent = '❌ ' + e.message; }
+    });
+
+    // Load existing panels
+    loadPanels();
+    panRenderOpts();
+  }
+
+  async function loadPanels() {
+    var el = $id('pan-existing'); if (!el) return;
+    try {
+      var r = await fetch('/api/guild/'+guildId+'/panels');
+      var list = await r.json();
+      if (!list.length) { el.innerHTML = '<span style="color:var(--muted)">Aucun panneau créé.</span>'; return; }
+      el.innerHTML = '<div class="panel-list">' + list.map(function(p) {
+        var ch = (gd.channels||[]).find(function(c){ return c.id===p.channel_id; });
+        var chName = ch ? '＃'+ch.name : p.channel_id;
+        var date = new Date(p.created_at).toLocaleDateString('fr-FR');
+        return '<div class="panel-list-item">'
+          +'<span>' + esc(p.config?.embed?.title || p.config?.placeholder || 'Panneau') + ' — <span style="color:var(--muted)">' + esc(chName) + ' · ' + date + '</span></span>'
+          +'<a href="https://discord.com/channels/'+guildId+'/'+p.channel_id+'/'+p.message_id+'" target="_blank">Voir ↗</a>'
+        +'</div>';
+      }).join('') + '</div>';
+    } catch { el.innerHTML = '<span style="color:var(--muted)">Impossible de charger.</span>'; }
+  }
+
+  // ── Guide ──────────────────────────────────────────────────────────────────
+
+  function tabGuide() {
+    return ''
+      // Hero
+      +'<div class="guide-hero">'
+        +'<div class="guide-avatar"><img src="/emotes/11_chapeau-salut.png" alt="Majordome"></div>'
+        +'<div class="guide-hero-text">'
+          +'<h2>LeMajordome — Guide d\'utilisation</h2>'
+          +'<p>Bienvenue dans le panneau de configuration de votre bot Discord.<br>Je suis à votre service pour configurer et gérer votre serveur.</p>'
+        +'</div>'
+      +'</div>'
+
+      // Conseil du jour
+      +'<div class="guide-bubble">'
+        +'<img class="emote" src="/emotes/12_siroter-the.png" alt="">'
+        +'<p><strong>Conseil du Majordome :</strong> Commencez par l\'onglet <strong>Général</strong> pour définir vos rôles propriétaires et staff, puis configurez les <strong>Journaux</strong> pour ne rien manquer sur votre serveur. Tout le reste vient naturellement ensuite.</p>'
+      +'</div>'
+
+      // Tips rapides
+      +'<div class="guide-label">Astuces rapides</div>'
+      +'<div class="guide-tips">'
+        +'<div class="tip-card"><img class="emote-sm" src="/emotes/09_pouce-leve.png" alt=""><div><h4>Sauvegarde manuelle</h4><p>Chaque onglet a son propre bouton <em>Enregistrer</em>. Les modifications ne s\'appliquent pas automatiquement.</p></div></div>'
+        +'<div class="tip-card"><img class="emote-sm" src="/emotes/07_joyeux.png" alt=""><div><h4>Prise d\'effet instantanée</h4><p>Les changements sont appliqués immédiatement après la sauvegarde, sans redémarrer le bot.</p></div></div>'
+        +'<div class="tip-card"><img class="emote-sm" src="/emotes/06_sceptique.png" alt=""><div><h4>Accès restreint</h4><p>Seuls les membres avec la permission <em>Gérer le serveur</em> peuvent accéder à ce dashboard.</p></div></div>'
+        +'<div class="tip-card"><img class="emote-sm" src="/emotes/02_clin-doeil.png" alt=""><div><h4>Variables de message</h4><p>Dans les messages de bienvenue, utilisez <code style="background:rgba(201,168,76,.1);color:var(--gold);padding:1px 5px;border-radius:3px">{user}</code> <code style="background:rgba(201,168,76,.1);color:var(--gold);padding:1px 5px;border-radius:3px">{server}</code> <code style="background:rgba(201,168,76,.1);color:var(--gold);padding:1px 5px;border-radius:3px">{count}</code>.</p></div></div>'
+        +'<div class="tip-card"><img class="emote-sm" src="/emotes/10_choc-panique.png" alt=""><div><h4>Rôles propriétaires</h4><p>Sans rôle propriétaire configuré, personne ne peut utiliser les commandes <code style="background:rgba(201,168,76,.1);color:var(--gold);padding:1px 5px;border-radius:3px">/admin</code> et <code style="background:rgba(201,168,76,.1);color:var(--gold);padding:1px 5px;border-radius:3px">/mod</code>.</p></div></div>'
+        +'<div class="tip-card"><img class="emote-sm" src="/emotes/01_the-service.png" alt=""><div><h4>Vocaux temporaires</h4><p>Créez un salon vocal <em>hub</em> — quand un membre le rejoint, un salon privé lui est créé automatiquement, puis supprimé quand il part.</p></div></div>'
+      +'</div>'
+
+      +'<hr class="guide-sep">'
+      +'<div class="guide-label">Documentation des modules</div>'
+
+      +guideAcc('🛡️ Général','general',''
+        +'<p>Configure les rôles fondamentaux du serveur :</p>'
+        +'<ul>'
+          +'<li><strong>Rôles propriétaires</strong> — accès aux commandes <code>/admin</code>, <code>/mod</code>, <code>/errors</code></li>'
+          +'<li><strong>Rôle staff</strong> — accès modéré aux commandes de modération</li>'
+          +'<li><strong>Rôle automatique</strong> — attribué à chaque nouveau membre à son arrivée</li>'
+          +'<li><strong>Bump Disboard</strong> — salon et rôle pingé quand c\'est l\'heure de bumper (rappel automatique toutes les 2h)</li>'
+        +'</ul>'
+      )
+      +guideAcc('🤖 Automodération','automod',''
+        +'<p>Filtre automatique actif sur tous les messages du serveur.</p>'
+        +'<ul>'
+          +'<li><strong>Filtre de mots</strong> — liste noire de mots bannis, message supprimé + avertissement silencieux</li>'
+          +'<li><strong>Anti-spam</strong> — bloque les membres qui envoient trop de messages en peu de temps</li>'
+          +'<li>Configurer le seuil (ex : 5 messages en 5 secondes déclenchent le filtre)</li>'
+        +'</ul>'
+        +'<p>Les messages supprimés apparaissent dans le salon Journaux → <em>Modération</em>.</p>'
+      )
+      +guideAcc('📋 Journaux','logs',''
+        +'<p>Définit un salon dédié pour chaque type d\'événement :</p>'
+        +'<ul>'
+          +'<li><strong>Messages</strong> — suppression et modification de messages</li>'
+          +'<li><strong>Modération</strong> — bans, kicks, mutes, avertissements</li>'
+          +'<li><strong>Vocal</strong> — connexions, déconnexions, changements de salon vocal</li>'
+          +'<li><strong>Serveur</strong> — création/suppression de salons et rôles</li>'
+        +'</ul>'
+        +'<p>💡 Vous pouvez utiliser le même salon pour plusieurs types de logs.</p>'
+      )
+      +guideAcc('👋 Bienvenue','welcome',''
+        +'<p>Personnalise l\'accueil des nouveaux membres.</p>'
+        +'<ul>'
+          +'<li><strong>Canal</strong> — salon où le message de bienvenue est envoyé</li>'
+          +'<li><strong>Message</strong> — texte avec variables dynamiques :</li>'
+        +'</ul>'
+        +'<div style="margin:0.4rem 0 0.4rem 1.1rem">'
+          +'<div class="var-row"><code>{user}</code><span>Mention du membre (@Prénom)</span></div>'
+          +'<div class="var-row"><code>{server}</code><span>Nom du serveur</span></div>'
+          +'<div class="var-row"><code>{count}</code><span>Nombre total de membres</span></div>'
+        +'</div>'
+        +'<ul>'
+          +'<li><strong>Couleur</strong> — couleur de la bordure de l\'embed (color picker)</li>'
+          +'<li><strong>DM</strong> — message privé optionnel envoyé dans les DMs du nouveau membre</li>'
+          +'<li><strong>Au revoir</strong> — message de départ dans un salon dédié</li>'
+        +'</ul>'
+      )
+      +guideAcc('⭐ Niveaux XP','levels',''
+        +'<p>Système de progression automatique basé sur l\'activité.</p>'
+        +'<ul>'
+          +'<li>Chaque message donne des points d\'XP au membre (cooldown anti-abus intégré)</li>'
+          +'<li><strong>Canal d\'annonce</strong> — salon où la montée de niveau est annoncée publiquement</li>'
+          +'<li><strong>Rôles de récompense</strong> — rôle attribué automatiquement quand un niveau minimum est atteint</li>'
+        +'</ul>'
+        +'<p>Consultez le classement des 5 membres les plus actifs depuis la Vue d\'ensemble.</p>'
+      )
+      +guideAcc('🎫 Tickets','tickets',''
+        +'<p>Système de support avec fils de discussion privés.</p>'
+        +'<ul>'
+          +'<li><strong>Catégorie</strong> — catégorie Discord où les tickets sont créés</li>'
+          +'<li><strong>Canal du panel</strong> — salon où le bouton "Ouvrir un ticket" est affiché</li>'
+          +'<li><strong>Canal de logs</strong> — salon où la fermeture et la transcription sont archivées</li>'
+        +'</ul>'
+        +'<p>💡 Utilisez la commande <code>/ticket</code> dans Discord pour déployer le panel dans le salon configuré.</p>'
+      )
+      +guideAcc('🏷️ Rôles auto','roles',''
+        +'<p>Boutons de rôles en libre-service pour les membres.</p>'
+        +'<ul>'
+          +'<li><strong>Canal</strong> — salon où les boutons de rôles sont affichés</li>'
+          +'<li><strong>Rôles proposés</strong> — chaque rôle coché devient un bouton cliquable</li>'
+        +'</ul>'
+        +'<p>Les membres peuvent prendre ou retirer leurs propres rôles sans intervention du staff.</p>'
+      )
+      +guideAcc('🟣 Twitch','twitch',''
+        +'<p>Alerte automatique quand un streamer suivi passe en live.</p>'
+        +'<ul>'
+          +'<li><strong>Canal d\'annonce</strong> — message envoyé dans ce salon dès que le live démarre</li>'
+          +'<li><strong>Streamers suivis</strong> — entrer le pseudo Twitch exact (sensible à la casse)</li>'
+        +'</ul>'
+        +'<p>Le bot surveille les streamers en temps réel et notifie dès qu\'ils démarrent.</p>'
+      )
+      +guideAcc('⚙️ Avancé','advanced',''
+        +'<p>Modules complémentaires pour enrichir le serveur.</p>'
+        +'<ul>'
+          +'<li><strong>Starboard ⭐</strong> — les messages qui reçoivent assez de réactions ⭐ sont épinglés dans un salon dédié</li>'
+          +'<li><strong>Vocaux temporaires</strong> — rejoindre le salon hub crée un vocal privé, supprimé automatiquement quand vide</li>'
+          +'<li><strong>Salons statistiques</strong> — salons vocaux dont le nom est mis à jour automatiquement avec le compteur membres/bots</li>'
+          +'<li><strong>Anniversaires 🎂</strong> — annonce chaque matin les anniversaires du jour dans le salon configuré</li>'
+        +'</ul>'
+      )
+
+      +'<hr class="guide-sep">'
+      +'<div class="guide-bubble" style="margin-bottom:0">'
+        +'<img class="emote" src="/emotes/05_interrogatif.png" alt="">'
+        +'<p><strong>Un problème ?</strong> Si quelque chose ne fonctionne pas comme attendu, vérifiez d\'abord que le bot a les <strong>permissions nécessaires</strong> dans les salons concernés. La grande majorité des problèmes vient de permissions Discord manquantes, non d\'une mauvaise configuration.</p>'
+      +'</div>';
+  }
+
+  function guideAcc(title, id, body) {
+    return '<div class="guide-acc">'
+      +'<button class="guide-acc-hd" onclick="toggleAcc(\''+id+'\')">'
+        +'<span class="acc-left">'+title+'</span>'
+        +'<span class="acc-arrow" id="arr-'+id+'">▶</span>'
+      +'</button>'
+      +'<div class="guide-acc-body" id="acc-'+id+'">'+body+'</div>'
+    +'</div>';
+  }
+
+  window.toggleAcc = function(id) {
+    var body = document.getElementById('acc-'+id);
+    var hd   = body.previousElementSibling;
+    var open = body.classList.contains('open');
+    body.classList.toggle('open', !open);
+    hd.classList.toggle('open', !open);
+  };
+
+  // ── Navigation ─────────────────────────────────────────────────────────────
+
+  function showTab(name) {
+    document.querySelectorAll('.nb').forEach(function(b){ b.classList.toggle('active', b.dataset.tab===name); });
+
+    var html = '';
+    if      (name==='overview') html = tabOverview();
+    else if (name==='general')  html = tabGeneral();
+    else if (name==='automod')  html = tabAutomod();
+    else if (name==='logs')     html = tabLogs();
+    else if (name==='welcome')  html = tabWelcome();
+    else if (name==='levels')   html = tabLevels();
+    else if (name==='tickets')  html = tabTickets();
+    else if (name==='roles')    html = tabRoles();
+    else if (name==='twitch')   html = tabTwitch();
+    else if (name==='advanced')  html = tabAdvanced();
+    else if (name==='panneaux')  html = tabPanneaux();
+    else if (name==='guide')     html = tabGuide();
+
+    $id('ct').innerHTML = html;
+
+    // Wire save buttons after DOM insert
+    if (name==='general') {
+      $id('btn-gen').addEventListener('click', function(){
+        patch({OWNER_ROLES:getChecked('owner-roles'), STAFF_ROLE:gv('staff-role')||null,
+               AUTO_ROLE:gv('auto-role')||null,
+               MOD_LOG_CHANNEL:gv('mod-log')||null, SUGGESTION_CHANNEL:gv('suggestion')||null});
+      });
+    } else if (name==='automod') { afterAutomod(); }
+    else if (name==='logs') {
+      $id('btn-logs').addEventListener('click', function(){
+        patch({LOGS:{messages:gv('lm')||null, moderation:gv('lmod')||null, vocal:gv('lv')||null,
+                     server:gv('ls')||null, commands:gv('lc')||null}});
+      });
+    } else if (name==='welcome') { afterWelcome(); }
+    else if (name==='levels') { afterLevels(); }
+    else if (name==='tickets') {
+      $id('btn-tkt').addEventListener('click', function(){
+        patch({TICKET_CATEGORY:gv('tcat')||null, TICKET_PANEL_CHANNEL:gv('tpan')||null, TICKET_LOG_CHANNEL:gv('tlog')||null});
+      });
+    } else if (name==='roles') {
+      $id('btn-roles').addEventListener('click', function(){
+        patch({ROLE_BUTTONS_CHANNEL:gv('rbch')||null, ROLE_BUTTONS:getChecked('rbc')});
+      });
+    } else if (name==='twitch') { afterTwitch(); }
+    else if (name==='panneaux') { afterPanneaux(); }
+    else if (name==='advanced') {
+      $id('btn-adv').addEventListener('click', function(){
+        patch({
+          STARBOARD_CHANNEL:gv('sb-ch')||null, STARBOARD_THRESHOLD:parseInt($id('sb-thresh').value)||3,
+          TEMP_VOICE_HUB:gv('tv-hub')||null, TEMP_VOICE_CATEGORY:gv('tv-cat')||null,
+          STATS_MEMBER_CHANNEL:gv('stat-m')||null, STATS_BOT_CHANNEL:gv('stat-b')||null,
+          BIRTHDAY_CHANNEL:gv('bday-ch')||null,
+        });
+      });
+    }
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+
+  async function init() {
+    var p = new URLSearchParams(location.search);
+    guildId = p.get('guild');
+    if (!guildId) { location.href='/select.html'; return; }
+
+    // Auth check
+    var me;
+    try {
+      var mr = await fetch('/api/me');
+      if (!mr.ok) { location.href='/'; return; }
+      me = await mr.json();
+    } catch(e) { location.href='/'; return; }
+
+    // Header
+    var gname = p.get('name') || 'Serveur';
+    var gicon = p.get('icon') || '';
+    $id('g-name').textContent = gname;
+    document.title = 'LeMajordome — ' + gname;
+    var iw = $id('g-icon-wrap');
+    if (gicon) iw.innerHTML = '<img class="g-icon" src="'+gicon+'" alt="">';
+    else        iw.innerHTML = '<div class="g-init">'+esc(gname.slice(0,2).toUpperCase())+'</div>';
+    $id('u-name').textContent = me.global_name || me.username;
+    $id('u-avatar').src = me.avatar
+      ? 'https://cdn.discordapp.com/avatars/'+me.id+'/'+me.avatar+'.png?size=64'
+      : 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+    // Load guild data
+    try {
+      var gr = await fetch('/api/guild/'+guildId);
+      if (!gr.ok) throw new Error('HTTP '+gr.status);
+      gd = await gr.json();
+    } catch(e) {
+      $id('ct').innerHTML = '<div style="padding:2rem;color:var(--danger)">Impossible de charger les données du serveur : '+esc(e.message)+'</div>';
+      return;
+    }
+
+    // Nav clicks
+    document.querySelectorAll('.nb').forEach(function(btn){
+      btn.addEventListener('click', function(){ showTab(btn.dataset.tab); });
+    });
+
+    showTab('overview');
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

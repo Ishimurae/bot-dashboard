@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeMajordome — Choisir un serveur</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root { --gold:#c9a84c; --border:rgba(201,168,76,0.14); --bg:#07070f; --s1:#0d0d1a; --text:#f0ece4; --muted:#7a7060; --muted2:#a09080; }
+    body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+    header {
+      padding:0 2.5rem; height:64px; display:flex; align-items:center; justify-content:space-between;
+      background:rgba(7,7,15,0.9); backdrop-filter:blur(20px);
+      border-bottom:1px solid var(--border); position:sticky; top:0; z-index:10;
+    }
+    .logo { font-family:'Playfair Display',serif; color:var(--gold); font-size:1.25rem; text-decoration:none; }
+    .user  { display:flex; align-items:center; gap:0.7rem; }
+    .user img { width:28px; height:28px; border-radius:50%; }
+    .user-name { font-size:0.85rem; color:var(--muted2); }
+    .logout { color:var(--muted); font-size:0.8rem; text-decoration:none; margin-left:0.5rem; transition:color .2s; }
+    .logout:hover { color:var(--text); }
+    main { max-width:860px; margin:0 auto; padding:3.5rem 1.5rem; }
+    h1 { font-family:'Playfair Display',serif; font-size:2rem; margin-bottom:0.5rem; }
+    .hint { color:var(--muted); font-size:0.88rem; margin-bottom:2.5rem; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:1rem; }
+    .card {
+      background:rgba(255,255,255,0.03); border:1px solid var(--border);
+      border-radius:16px; padding:1.8rem 1rem; text-align:center;
+      cursor:pointer; transition:all .25s; text-decoration:none; color:var(--text); display:block;
+    }
+    .card:hover { border-color:rgba(201,168,76,0.4); background:rgba(201,168,76,0.05); transform:translateY(-3px); box-shadow:0 12px 40px rgba(0,0,0,0.3); }
+    .card img { width:64px; height:64px; border-radius:50%; margin-bottom:0.8rem; object-fit:cover; }
+    .card .init { width:64px; height:64px; border-radius:50%; background:rgba(201,168,76,0.12); display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--gold); font-size:1.2rem; margin:0 auto 0.8rem; }
+    .card .name { font-weight:600; font-size:0.9rem; }
+    .loading { color:var(--muted); padding:2rem; text-align:center; }
+    .empty { color:var(--muted); text-align:center; padding:3rem; line-height:1.8; }
+  </style>
+</head>
+<body>
+<header>
+  <a class="logo" href="/">Le Majordome</a>
+  <div class="user">
+    <img id="avatar" src="" alt="">
+    <span class="user-name" id="uname">—</span>
+    <a class="logout" href="/auth/logout">Déconnexion</a>
+  </div>
+</header>
+<main>
+  <h1>Choisir un serveur</h1>
+  <p class="hint">Seuls les serveurs où tu es administrateur et où le bot est présent s'affichent.</p>
+  <div class="grid" id="grid"><div class="loading">Chargement…</div></div>
+</main>
+<script>
+(async () => {
+  try {
+    const me = await fetch('/api/me').then(r => r.ok ? r.json() : null);
+    if (!me) return location.href = '/';
+    document.getElementById('uname').textContent = me.global_name || me.username;
+    document.getElementById('avatar').src = me.avatar
+      ? `https://cdn.discordapp.com/avatars/${me.id}/${me.avatar}.png?size=64`
+      : 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+    const guilds = await fetch('/api/guilds').then(r => r.json());
+    const grid = document.getElementById('grid');
+    if (!guilds.length) {
+      grid.innerHTML = '<div class="empty">Aucun serveur trouvé.<br><small>Le bot doit être présent sur le serveur et tu dois être administrateur.</small></div>';
+      return;
+    }
+    grid.innerHTML = guilds.map(g => `
+      <a class="card" href="/app.html?guild=${g.id}&name=${encodeURIComponent(g.name)}&icon=${encodeURIComponent(g.icon||'')}">
+        ${g.icon ? `<img src="${g.icon}" alt="">` : `<div class="init">${g.name.slice(0,2).toUpperCase()}</div>`}
+        <div class="name">${g.name}</div>
+      </a>
+    `).join('');
+  } catch(e) {
+    document.getElementById('grid').innerHTML = `<div class="empty">Erreur : ${e.message}</div>`;
+  }
+})();
+</script>
+</body>
+</html>
