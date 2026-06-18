@@ -291,12 +291,17 @@
     /* ── Preview Discord ── */
     .prev-wrap { background:#1e1f26; border-radius:8px; padding:1rem; min-height:60px; }
     .prev-content { font-size:0.9rem; color:#dcddde; margin-bottom:0.4rem; white-space:pre-line; }
-    .prev-embed { background:#2f3136; border-radius:0 4px 4px 0; padding:0.7rem 1rem 0.7rem 0.9rem; position:relative; margin:0.3rem 0 0.4rem; overflow:hidden; }
+    .prev-embed { background:#2f3136; border-radius:0 4px 4px 0; padding:0.7rem 1rem 0.7rem 0.9rem; position:relative; margin:0.3rem 0 0; }
     .prev-title { font-weight:700; font-size:0.92rem; color:#fff; margin-bottom:0.25rem; }
     .prev-desc { font-size:0.83rem; color:#b9bbbe; white-space:pre-line; line-height:1.5; }
     .prev-thumb { width:64px; height:64px; object-fit:cover; border-radius:4px; position:absolute; top:0.7rem; right:0.7rem; }
-    .prev-img { max-width:100%; border-radius:4px; margin-top:0.5rem; max-height:180px; object-fit:contain; display:block; }
-    .prev-select { background:#2f3136; border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:0.45rem 0.8rem; font-size:0.83rem; color:#72767d; display:flex; justify-content:space-between; margin-top:0; cursor:default; }
+    .prev-img { max-width:100%; border-radius:4px; margin:0.4rem 0; max-height:200px; object-fit:contain; display:block; }
+    .prev-select { background:#2f3136; border:1px solid rgba(255,255,255,0.1); border-radius:4px 4px 0 0; padding:0.45rem 0.8rem; font-size:0.83rem; color:#72767d; display:flex; justify-content:space-between; margin-top:0.4rem; cursor:default; }
+    .prev-options { background:#2f3136; border:1px solid rgba(255,255,255,0.1); border-top:none; border-radius:0 0 4px 4px; overflow:hidden; }
+    .prev-opt { padding:0.35rem 0.7rem; border-bottom:1px solid rgba(255,255,255,0.04); display:flex; align-items:center; gap:0.4rem; }
+    .prev-opt:last-child { border-bottom:none; }
+    .prev-opt-label { font-size:0.82rem; color:#dcddde; }
+    .prev-opt-desc { font-size:0.74rem; color:#72767d; margin-left:auto; }
     .prev-empty { color:var(--muted); font-size:0.8rem; }
 
     .guide-sep { border:none; border-top:1px solid var(--border); margin:1.4rem 0; }
@@ -996,12 +1001,12 @@
             +'<option value="">— Choisir un rôle —</option>'
             +(gd.roles||[]).map(function(r){ return '<option value="'+r.id+'"'+(r.id===o.roleId?' selected':'')+'>'+esc(r.name)+'</option>'; }).join('')
           +'</select>'
-          +'<input type="text" placeholder="Nom (ex: Rose)" value="'+esc(o.label||'')+'" oninput="panelOptions['+i+'].label=this.value" maxlength="100">'
+          +'<input type="text" placeholder="Nom (ex: Rose)" value="'+esc(o.label||'')+'" oninput="panelOptions['+i+'].label=this.value;panUpdatePreview()" maxlength="100">'
           +'<button type="button" class="panel-emoji-btn" onclick="panPickEmoji('+i+',event)">😀</button>'
           +'<button type="button" class="btn-del" onclick="panelOptions.splice('+i+',1);panRenderOpts()">×</button>'
         +'</div>'
         +'<div class="panel-option-row">'
-          +'<input type="text" placeholder="Description courte (optionnel)" value="'+esc(o.description||'')+'" oninput="panelOptions['+i+'].description=this.value" maxlength="100" style="flex:1">'
+          +'<input type="text" placeholder="Description courte (optionnel)" value="'+esc(o.description||'')+'" oninput="panelOptions['+i+'].description=this.value;panUpdatePreview()" maxlength="100" style="flex:1">'
         +'</div>'
         // Mini emoji picker
         +(gd.emojis?.length ? '<div class="ep-panel" id="ep-opt-'+i+'" style="position:relative;top:0;max-height:160px">'
@@ -1011,6 +1016,7 @@
             +'</div></div>' : '')
       +'</div>';
     }).join('');
+    panUpdatePreview();
   }
 
   window.imgFilePick = function(urlId, fileId) {
@@ -1027,7 +1033,7 @@
       try {
         var r = await fetch('/api/upload-image', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ data: e.target.result, filename: file.name }) });
         var d = await r.json();
-        if (d.url && urlEl) { urlEl.value = d.url; urlEl.placeholder = ''; toast('Image uploadée ✅', 'ok'); }
+        if (d.url && urlEl) { urlEl.value = d.url; urlEl.placeholder = ''; toast('Image uploadée ✅', 'ok'); panUpdatePreview(); }
         else { if (urlEl) urlEl.placeholder = ''; toast('Erreur upload : ' + (d.error||'inconnue'), 'err'); }
       } catch(err) { if (urlEl) urlEl.placeholder = ''; toast('Erreur upload : ' + err.message, 'err'); }
     };
@@ -1194,8 +1200,19 @@
     var ph      = ($id('pan-ph')?.value      || 'Choisir…').trim() || 'Choisir…';
     var content = ($id('pan-content')?.value || '').trim();
 
+    // Lire les options depuis le DOM
+    var opts = [];
+    document.querySelectorAll('#pan-opts-list .panel-option').forEach(function(optEl) {
+      var sel   = optEl.querySelector('select');
+      var texts = optEl.querySelectorAll('input[type=text]');
+      var label = (texts[0]?.value || '').trim();
+      var desc2 = (texts[1]?.value || '').trim();
+      var eImg  = optEl.querySelector('.panel-emoji-preview img');
+      opts.push({ label: label || 'Option', desc: desc2, emojiSrc: eImg?.src || '' });
+    });
+
     var hasEmbed = title || desc || img || thumb;
-    if (!hasEmbed && !content) { el.innerHTML = '<span class="prev-empty">L\'aperçu s\'affichera ici…</span>'; return; }
+    if (!hasEmbed && !content && !opts.length) { el.innerHTML = '<span class="prev-empty">L\'aperçu s\'affichera ici…</span>'; return; }
 
     var html = '';
     if (content) html += '<div class="prev-content">' + esc(content) + '</div>';
@@ -1204,10 +1221,23 @@
       if (thumb) html += '<img class="prev-thumb" src="'+esc(thumb)+'" onerror="this.style.display=\'none\'">';
       if (title) html += '<div class="prev-title">'+esc(title)+'</div>';
       if (desc)  html += '<div class="prev-desc">'+esc(desc)+'</div>';
-      if (img)   html += '<img class="prev-img" src="'+esc(img)+'" onerror="this.style.display=\'none\'">';
+      html += '</div>';
+      // Grande image sous l'encart (comme Discord)
+      if (img) html += '<img class="prev-img" src="'+esc(img)+'" onerror="this.style.display=\'none\'">';
+    }
+    // Menu déroulant avec options
+    html += '<div class="prev-select">'+esc(ph)+' <span>▼</span></div>';
+    if (opts.length) {
+      html += '<div class="prev-options">';
+      opts.forEach(function(o) {
+        html += '<div class="prev-opt">';
+        if (o.emojiSrc) html += '<img src="'+esc(o.emojiSrc)+'" style="width:18px;height:18px;flex-shrink:0">';
+        html += '<span class="prev-opt-label">'+esc(o.label)+'</span>';
+        if (o.desc) html += '<span class="prev-opt-desc">'+esc(o.desc)+'</span>';
+        html += '</div>';
+      });
       html += '</div>';
     }
-    html += '<div class="prev-select">'+esc(ph)+' <span>▼</span></div>';
     el.innerHTML = html;
   }
 
