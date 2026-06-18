@@ -282,6 +282,22 @@
     }
     .panel-list-item a { color:var(--gold); text-decoration:none; font-size:0.75rem; }
     .panel-list-item a:hover { text-decoration:underline; }
+    .panel-list-item-actions { display:flex; gap:0.4rem; align-items:center; flex-shrink:0; }
+    .panel-btn-edit { background:rgba(201,168,76,0.12); border:1px solid rgba(201,168,76,0.25); color:var(--gold); border-radius:5px; padding:2px 9px; font-size:0.73rem; cursor:pointer; }
+    .panel-btn-edit:hover { background:rgba(201,168,76,0.22); }
+    .panel-btn-del { background:rgba(255,45,120,0.1); border:1px solid rgba(255,45,120,0.25); color:#ff6b9d; border-radius:5px; padding:2px 9px; font-size:0.73rem; cursor:pointer; }
+    .panel-btn-del:hover { background:rgba(255,45,120,0.2); }
+
+    /* ── Preview Discord ── */
+    .prev-wrap { background:#1e1f26; border-radius:8px; padding:1rem; min-height:60px; }
+    .prev-content { font-size:0.9rem; color:#dcddde; margin-bottom:0.4rem; white-space:pre-line; }
+    .prev-embed { background:#2f3136; border-radius:0 4px 4px 0; padding:0.7rem 1rem 0.7rem 0.9rem; position:relative; margin:0.3rem 0 0.4rem; overflow:hidden; }
+    .prev-title { font-weight:700; font-size:0.92rem; color:#fff; margin-bottom:0.25rem; }
+    .prev-desc { font-size:0.83rem; color:#b9bbbe; white-space:pre-line; line-height:1.5; }
+    .prev-thumb { width:64px; height:64px; object-fit:cover; border-radius:4px; position:absolute; top:0.7rem; right:0.7rem; }
+    .prev-img { max-width:100%; border-radius:4px; margin-top:0.5rem; max-height:180px; object-fit:contain; display:block; }
+    .prev-select { background:#2f3136; border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:0.45rem 0.8rem; font-size:0.83rem; color:#72767d; display:flex; justify-content:space-between; margin-top:0; cursor:default; }
+    .prev-empty { color:var(--muted); font-size:0.8rem; }
 
     .guide-sep { border:none; border-top:1px solid var(--border); margin:1.4rem 0; }
     .guide-label { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-bottom:0.7rem; margin-top:1.2rem; }
@@ -937,10 +953,18 @@
         +'<button type="button" class="btn-add" style="margin-top:0.7rem" onclick="panAddOpt()">+ Ajouter un rôle</button>'
       +'</div>'
 
+      // Aperçu live
+      +'<div class="sec"><div class="sec-t">Aperçu</div>'
+        +'<div class="prev-wrap" id="pan-preview-card"><span class="prev-empty">L\'aperçu s\'affichera ici…</span></div>'
+      +'</div>'
+
       // Panneaux existants
       +'<div class="sec"><div class="sec-t">Panneaux existants</div><div id="pan-existing" style="color:var(--muted);font-size:0.82rem">Chargement…</div></div>'
 
-      +'<button class="btn-save" id="pan-send" style="margin-top:1rem">Envoyer dans le salon</button>'
+      +'<div style="display:flex;gap:0.7rem;align-items:center;margin-top:1rem;flex-wrap:wrap">'
+        +'<button class="btn-save" id="pan-send">Envoyer dans le salon</button>'
+        +'<button type="button" class="fmt-btn" id="pan-reset" style="padding:0.5rem 1rem;font-size:0.85rem;display:none" onclick="panReset()">Annuler la modification</button>'
+      +'</div>'
       +'<p id="pan-status" style="margin-top:0.5rem;font-size:0.82rem;color:var(--muted)"></p>';
   }
 
@@ -1063,17 +1087,42 @@
     ta.focus();
   };
 
+  var _panEditId = null;     // panelId en cours d'édition (null = création)
+  var _panEditMsgId = null;  // messageId Discord à patcher
+  var _panEditChId  = null;  // channelId du message à patcher
+
+  function panReset() {
+    _panEditId = _panEditMsgId = _panEditChId = null;
+    var btn = $id('pan-send'); if (btn) btn.textContent = 'Envoyer dans le salon';
+    var rb  = $id('pan-reset'); if (rb) rb.style.display = 'none';
+    // Vider le formulaire
+    ['pan-title','pan-desc','pan-content','pan-img','pan-thumb','pan-ph'].forEach(function(id){ var el=$id(id); if(el) el.value=''; });
+    var cp=$id('pan-cp'); if(cp) cp.value='#c9a84c';
+    var ct=$id('pan-ct'); if(ct) ct.value='#c9a84c';
+    var pm=$id('pan-multi'); if(pm) pm.checked=false;
+    var ch=$id('pan-ch'); if(ch) ch.value='';
+    panelOptions = []; panRenderOpts();
+    panUpdatePreview();
+  }
+
   function afterPanneaux() {
     // Color picker sync
     var cp = $id('pan-cp'), ct = $id('pan-ct');
     if (cp && ct) {
-      cp.addEventListener('input', function(){ ct.value = cp.value; });
-      ct.addEventListener('change', function(){ if(/^#[0-9a-f]{6}$/i.test(ct.value)) cp.value=ct.value; });
+      cp.addEventListener('input', function(){ ct.value = cp.value; panUpdatePreview(); });
+      ct.addEventListener('change', function(){ if(/^#[0-9a-f]{6}$/i.test(ct.value)) { cp.value=ct.value; panUpdatePreview(); } });
     }
 
-    // Send
+    // Bind aperçu live sur tous les champs texte/fichier
+    ['pan-title','pan-desc','pan-content','pan-img','pan-thumb','pan-ph'].forEach(function(id) {
+      var el = $id(id); if (!el) return;
+      el.addEventListener('input', panUpdatePreview);
+      el.addEventListener('change', panUpdatePreview);
+    });
+
+    // Send / Mettre à jour
     $id('pan-send').addEventListener('click', async function() {
-      var channelId = gv('pan-ch');
+      var channelId = _panEditId ? _panEditChId : gv('pan-ch');
       if (!channelId) return toast('Sélectionne un canal', 'err');
       if (!panelOptions.length) return toast('Ajoute au moins un rôle', 'err');
 
@@ -1089,6 +1138,7 @@
 
       if (panelOptions.some(function(o){ return !o.roleId; })) return toast('Sélectionne un rôle pour chaque ligne', 'err');
 
+      var ctEl = $id('pan-ct');
       var body = {
         channelId,
         placeholder: gv('pan-ph') || 'Choisir...',
@@ -1098,7 +1148,7 @@
           content:     ($id('pan-content').value || '').trim() || undefined,
           title:       (gv('pan-title') || '').trim() || undefined,
           description: ($id('pan-desc').value || '').trim() || undefined,
-          color:       ct ? ct.value : '#c9a84c',
+          color:       ctEl ? ctEl.value : '#c9a84c',
           image:       (gv('pan-img') || '').trim() || undefined,
           thumbnail:   (gv('pan-thumb') || '').trim() || undefined,
         },
@@ -1106,11 +1156,21 @@
 
       $id('pan-status').textContent = '⏳ Envoi en cours...';
       try {
-        var r = await fetch('/api/guild/'+guildId+'/panel', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        var url, method;
+        if (_panEditId) {
+          url    = '/api/guild/'+guildId+'/panel/'+_panEditId;
+          method = 'PATCH';
+          body.messageId = _panEditMsgId;
+        } else {
+          url    = '/api/guild/'+guildId+'/panel';
+          method = 'POST';
+        }
+        var r = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
         var d = await r.json();
         if (d.ok) {
-          toast('Panneau envoyé !', 'ok');
-          $id('pan-status').textContent = '✅ Envoyé — ID message : ' + d.messageId;
+          toast(_panEditId ? 'Panneau mis à jour !' : 'Panneau envoyé !', 'ok');
+          $id('pan-status').textContent = _panEditId ? '✅ Mis à jour' : '✅ Envoyé — ID message : ' + d.messageId;
+          panReset();
           loadPanels();
         } else {
           toast('Erreur : ' + (d.error || 'inconnue'), 'err');
@@ -1124,6 +1184,79 @@
     panRenderOpts();
   }
 
+  function panUpdatePreview() {
+    var el = $id('pan-preview-card'); if (!el) return;
+    var title   = ($id('pan-title')?.value   || '').trim();
+    var desc    = ($id('pan-desc')?.value    || '').trim();
+    var color   = $id('pan-cp')?.value       || '#c9a84c';
+    var img     = ($id('pan-img')?.value     || '').trim();
+    var thumb   = ($id('pan-thumb')?.value   || '').trim();
+    var ph      = ($id('pan-ph')?.value      || 'Choisir…').trim() || 'Choisir…';
+    var content = ($id('pan-content')?.value || '').trim();
+
+    var hasEmbed = title || desc || img || thumb;
+    if (!hasEmbed && !content) { el.innerHTML = '<span class="prev-empty">L\'aperçu s\'affichera ici…</span>'; return; }
+
+    var html = '';
+    if (content) html += '<div class="prev-content">' + esc(content) + '</div>';
+    if (hasEmbed) {
+      html += '<div class="prev-embed" style="border-left:4px solid '+esc(color)+'">';
+      if (thumb) html += '<img class="prev-thumb" src="'+esc(thumb)+'" onerror="this.style.display=\'none\'">';
+      if (title) html += '<div class="prev-title">'+esc(title)+'</div>';
+      if (desc)  html += '<div class="prev-desc">'+esc(desc)+'</div>';
+      if (img)   html += '<img class="prev-img" src="'+esc(img)+'" onerror="this.style.display=\'none\'">';
+      html += '</div>';
+    }
+    html += '<div class="prev-select">'+esc(ph)+' <span>▼</span></div>';
+    el.innerHTML = html;
+  }
+
+  window.deletePanel = async function(panelId, title) {
+    if (!confirm('Supprimer le panneau "' + title + '" ?\nLe message Discord sera aussi supprimé.')) return;
+    try {
+      var r = await fetch('/api/guild/'+guildId+'/panel/'+panelId, { method:'DELETE' });
+      var d = await r.json();
+      if (d.ok) { toast('Panneau supprimé', 'ok'); loadPanels(); }
+      else toast('Erreur : ' + (d.error || 'inconnue'), 'err');
+    } catch { toast('Erreur réseau', 'err'); }
+  };
+
+  window.editPanel = async function(panelId) {
+    var r = await fetch('/api/guild/'+guildId+'/panels');
+    var list = await r.json();
+    var p = list.find(function(x){ return x.id === panelId; });
+    if (!p) return toast('Panneau introuvable', 'err');
+
+    var cfg = p.config || {};
+    _panEditId    = p.id;
+    _panEditMsgId = p.message_id;
+    _panEditChId  = p.channel_id;
+
+    // Remplir le formulaire
+    if ($id('pan-ch')) { $id('pan-ch').value = p.channel_id; }
+    var emb = cfg.embed || {};
+    var setVal = function(id, v){ var el=$id(id); if(el) el.value = v||''; };
+    setVal('pan-title',   emb.title);
+    setVal('pan-desc',    emb.description);
+    setVal('pan-content', emb.content);
+    setVal('pan-img',     emb.image);
+    setVal('pan-thumb',   emb.thumbnail);
+    setVal('pan-ph',      cfg.placeholder);
+    var col = emb.color || '#c9a84c';
+    var cp=$id('pan-cp'); if(cp) cp.value=col;
+    var ct=$id('pan-ct'); if(ct) ct.value=col;
+    var pm=$id('pan-multi'); if(pm) pm.checked=!!cfg.multi;
+
+    panelOptions = (cfg.options || []).map(function(o){ return Object.assign({}, o); });
+    panRenderOpts();
+
+    var btn = $id('pan-send'); if (btn) btn.textContent = 'Mettre à jour';
+    var rb  = $id('pan-reset'); if (rb) rb.style.display = '';
+    panUpdatePreview();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('Panneau chargé — modifie puis clique "Mettre à jour"', 'ok');
+  };
+
   async function loadPanels() {
     var el = $id('pan-existing'); if (!el) return;
     try {
@@ -1134,9 +1267,14 @@
         var ch = (gd.channels||[]).find(function(c){ return c.id===p.channel_id; });
         var chName = ch ? '＃'+ch.name : p.channel_id;
         var date = new Date(p.created_at).toLocaleDateString('fr-FR');
+        var title = esc(p.config?.embed?.title || p.config?.placeholder || 'Panneau');
         return '<div class="panel-list-item">'
-          +'<span>' + esc(p.config?.embed?.title || p.config?.placeholder || 'Panneau') + ' — <span style="color:var(--muted)">' + esc(chName) + ' · ' + date + '</span></span>'
-          +'<a href="https://discord.com/channels/'+guildId+'/'+p.channel_id+'/'+p.message_id+'" target="_blank">Voir ↗</a>'
+          +'<span>' + title + ' — <span style="color:var(--muted)">' + esc(chName) + ' · ' + date + '</span></span>'
+          +'<div class="panel-list-item-actions">'
+            +'<a href="https://discord.com/channels/'+guildId+'/'+p.channel_id+'/'+p.message_id+'" target="_blank">Voir ↗</a>'
+            +'<button class="panel-btn-edit" onclick="editPanel(\''+esc(p.id)+'\')">Modifier</button>'
+            +'<button class="panel-btn-del" onclick="deletePanel(\''+esc(p.id)+'\',\''+title+'\')">Supprimer</button>'
+          +'</div>'
         +'</div>';
       }).join('') + '</div>';
     } catch { el.innerHTML = '<span style="color:var(--muted)">Impossible de charger.</span>'; }

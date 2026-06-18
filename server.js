@@ -116,25 +116,30 @@ function discordPost(endpoint, body) {
   });
 }
 
-function discordBotPost(endpoint, body) {
+function discordBotPost(endpoint, body, method = 'POST') {
   return new Promise((resolve, reject) => {
-    const payload = JSON.stringify(body);
+    const payload = body != null ? JSON.stringify(body) : null;
     const opts = {
-      hostname: 'discord.com', path: `/api/v10${endpoint}`, method: 'POST',
+      hostname: 'discord.com', path: `/api/v10${endpoint}`, method,
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bot ${BOT_TOKEN}`,
-        'Content-Length': Buffer.byteLength(payload),
         'User-Agent': 'LeMajordome Dashboard/1.0',
       },
     };
+    if (payload) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.headers['Content-Length'] = Buffer.byteLength(payload);
+    }
     const req = https.request(opts, res => {
       let d = '';
       res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(new Error(d)); } });
+      res.on('end', () => {
+        if (!d.trim()) return resolve({ ok: true });
+        try { resolve(JSON.parse(d)); } catch { reject(new Error(d)); }
+      });
     });
     req.on('error', reject);
-    req.write(payload);
+    if (payload) req.write(payload);
     req.end();
   });
 }
@@ -338,6 +343,75 @@ app.post('/api/guild/:id/panel', auth, authGuild, async (req, res) => {
     }
     res.json({ ok: true, panelId, messageId: msg.id });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.patch('/api/guild/:id/panel/:panelId', auth, authGuild, async (req, res) => {
+  const gid = req.params.id;
+  const panelId = req.params.panelId;
+  const { channelId, messageId, embed, options, multi, placeholder } = req.body;
+  if (!channelId || !messageId || !Array.isArray(options) || !options.length) return res.status(400).json({ error: 'Données manquantes' });
+
+  const selectOptions = options.slice(0, 25).map(o => {
+    const opt = { label: (o.label || 'Rôle').slice(0, 100), value: o.roleId };
+    if (o.emojiId)   opt.emoji = { id: o.emojiId, name: o.emojiName || 'e', animated: !!o.emojiAnimated };
+    else if (o.emoji) opt.emoji = { name: o.emoji };
+    if (o.description) opt.description = o.description.slice(0, 100);
+    return opt;
+  });
+
+  const embedObj = {};
+  if (embed?.title)       embedObj.title       = embed.title.slice(0, 256);
+  if (embed?.description) embedObj.description = embed.description.slice(0, 4096);
+  if (embed?.color)       embedObj.color       = parseInt((embed.color || '#000000').replace('#', ''), 16);
+  if (embed?.image)       embedObj.image       = { url: embed.image };
+  if (embed?.thumbnail)   embedObj.thumbnail   = { url: embed.thumbnail };
+
+  const payload = {
+    content:    embed?.content  || null,
+    embeds:     Object.keys(embedObj).length ? [embedObj] : [],
+    components: [{ type: 1, components: [{
+      type: 3, custom_id: 'panel_select_' + panelId,
+      placeholder: (placeholder || 'Choisir...').slice(0, 150),
+      min_values: 0, max_values: multi ? options.length : 1,
+      options: selectOptions,
+    }] }],
+  };
+
+  try {
+    const msg = await discordBotPost(`/channels/${channelId}/messages/${messageId}`, payload, 'PATCH');
+    if (!msg.id) return res.status(400).json({ error: msg.message || 'Erreur Discord', code: msg.code });
+
+    const db = getDb();
+    if (db) {
+      try {
+        db.prepare('UPDATE panels SET config = ? WHERE id = ? AND guild_id = ?').run(JSON.stringify({ embed, options, multi, placeholder }), panelId, gid);
+        db.close();
+      } catch { try { db.close(); } catch {} }
+    }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/guild/:id/panel/:panelId', auth, authGuild, async (req, res) => {
+  const gid = req.params.id;
+  const panelId = req.params.panelId;
+
+  const db = getDb();
+  let channelId, messageId;
+  if (db) {
+    try {
+      const row = db.prepare('SELECT channel_id, message_id FROM panels WHERE id = ? AND guild_id = ?').get(panelId, gid);
+      if (row) { channelId = row.channel_id; messageId = row.message_id; }
+      db.prepare('DELETE FROM panels WHERE id = ? AND guild_id = ?').run(panelId, gid);
+      db.close();
+    } catch { try { db.close(); } catch {} }
+  }
+
+  if (channelId && messageId) {
+    try { await discordBotPost(`/channels/${channelId}/messages/${messageId}`, null, 'DELETE'); } catch {}
+  }
+
+  res.json({ ok: true });
 });
 
 app.patch('/api/guild/:id', auth, authGuild, (req, res) => {
