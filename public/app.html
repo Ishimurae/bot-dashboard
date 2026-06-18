@@ -1217,7 +1217,9 @@
     var html = '';
     if (content) html += '<div class="prev-content">' + esc(content) + '</div>';
     if (hasEmbed) {
-      html += '<div class="prev-embed" style="border-left:4px solid '+esc(color)+'">';
+      var embedStyle = 'border-left:4px solid '+esc(color);
+      if (thumb) embedStyle += ';min-height:80px;padding-right:80px';
+      html += '<div class="prev-embed" style="'+embedStyle+'">';
       if (thumb) html += '<img class="prev-thumb" src="'+esc(thumb)+'" onerror="this.style.display=\'none\'">';
       if (title) html += '<div class="prev-title">'+esc(title)+'</div>';
       if (desc)  html += '<div class="prev-desc">'+esc(desc)+'</div>';
